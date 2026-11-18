@@ -51,7 +51,12 @@ export default async function LibraryPage({
   const playlists = getPlaylistsByOwner(user.id)
   const PAGE = 50
   const likedPage = listTracks({ likedBy: user.id, viewerId: user.id, limit: PAGE + 1 })
-  const uploadsPage = listTracks({ uploaderId: user.id, viewerId: user.id, limit: PAGE + 1 })
+  const uploadsPage = listTracks({
+    uploaderId: user.id,
+    viewerId: user.id,
+    reviewStatus: 'all',
+    limit: PAGE + 1,
+  })
   const liked = likedPage.slice(0, PAGE)
   const uploads = uploadsPage.slice(0, PAGE)
 

@@ -33,7 +33,12 @@ export default async function UploadPage() {
 
   const canUpload = user.canUpload || user.isAdmin
   const stats = userUploadStats(user.id)
-  const uploads = listTracks({ uploaderId: user.id, viewerId: user.id, limit: 5 })
+  const uploads = listTracks({
+    uploaderId: user.id,
+    viewerId: user.id,
+    reviewStatus: 'all',
+    limit: 5,
+  })
 
   return (
     <div className="px-4 md:px-6">
@@ -95,8 +100,8 @@ export default async function UploadPage() {
           </div>
           <div>
             <div className="mb-1 font-semibold text-ink">Что дальше</div>
-            Трек сразу появляется в «Новых загрузках» на главной и в поиске. Удалить его можно в
-            любой момент.
+            Трек отправляется модератору. После одобрения он появится в «Новых загрузках» на
+            главной, в поиске и в плейлистах.
           </div>
         </div>
       </div>

@@ -17,7 +17,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params
   const track = getTrack(id)
-  return { title: track ? `${track.title} — ${track.artist}` : 'Трек' }
+  if (!track) return { title: 'Трек' }
+  if (track.reviewStatus !== 'approved') {
+    const user = await getCurrentUser()
+    if (!user || (user.id !== track.uploaderId && !user.isModerator)) {
+      return { title: 'Трек' }
+    }
+  }
+  return { title: `${track.title} — ${track.artist}` }
 }
 
 export default async function TrackPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,6 +32,8 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
   const user = await getCurrentUser()
   const track = getTrack(id, user?.id)
   if (!track) notFound()
+  const canReview = Boolean(user && (user.isModerator || user.id === track.uploaderId))
+  if (track.reviewStatus !== 'approved' && !canReview) notFound()
 
   const related = listTracks({
     artist: track.artist,
@@ -70,6 +79,19 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
+      {track.reviewStatus !== 'approved' && (
+        <div className="mx-4 mt-4 rounded-lg border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90 md:mx-6">
+          {track.reviewStatus === 'pending' ? (
+            <>Трек на проверке. После одобрения модератором он появится в общей библиотеке.</>
+          ) : (
+            <>
+              Трек отклонён.
+              {track.reviewNote ? <> Причина: {track.reviewNote}</> : null}
+            </>
+          )}
+        </div>
+      )}
+
       <div className="px-4 md:px-6">
         <TrackHeroActions track={track} list={artistList} viewerId={user?.id ?? null} />
 
@@ -95,7 +117,7 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
             <div className="rounded-lg bg-card p-4">
               <div className="text-sm font-semibold">Об исполнителе</div>
               <div className="mt-3 flex items-center gap-3">
-                <Avatar name={track.artist} className="h-12 w-12" textClassName="text-base" />
+                <Avatar name={track.artist} className="h-12 w-12" textClassName="text-[16px]" />
                 <div className="w-full min-w-0 md:w-auto">
                   <Link
                     href={`/artist/${encodeURIComponent(track.artist)}`}

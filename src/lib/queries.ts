@@ -12,12 +12,20 @@ import type {
   Track,
   UserPublic,
   UserRecord,
+  UserRole,
   UserSearchResult,
 } from './types'
 
 type Row = Record<string, any>
 
 function mapUser(row: Row): UserRecord {
+  const isAdminFlag = Number(row.is_admin ?? 0) === 1
+  const role: UserRole =
+    row.role === 'admin' || row.role === 'moderator'
+      ? row.role
+      : isAdminFlag
+        ? 'admin'
+        : 'user'
   return {
     id: String(row.id),
     email: String(row.email),
@@ -31,7 +39,9 @@ function mapUser(row: Row): UserRecord {
     avatarFrame: clampAvatarFrame(row.avatar_frame ? String(row.avatar_frame) : null),
     createdAt: Number(row.created_at),
     canUpload: Number(row.can_upload ?? 0) === 1,
-    isAdmin: Number(row.is_admin ?? 0) === 1,
+    isAdmin: role === 'admin',
+    isModerator: role === 'moderator' || role === 'admin',
+    role,
     isBanned: Number(row.is_banned ?? 0) === 1,
     sessionVersion: Number(row.session_version ?? 0),
     passwordHash: String(row.password_hash),
@@ -53,6 +63,11 @@ function mapTrack(row: Row): Track {
     playCount: Number(row.play_count ?? 0),
     createdAt: Number(row.created_at),
     liked: Number(row.liked ?? 0) > 0,
+    reviewStatus:
+      row.review_status === 'approved' || row.review_status === 'rejected'
+        ? row.review_status
+        : 'pending',
+    reviewNote: row.review_note ? String(row.review_note) : null,
   }
 }
 
@@ -151,8 +166,8 @@ export function createUser(input: {
   const adminEmail = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase()
   const isAdmin = total === 0 || (adminEmail !== '' && input.email.trim().toLowerCase() === adminEmail)
   db.prepare(
-    `INSERT INTO users (id, email, username, display_name, search_text, password_hash, bio, can_upload, is_admin, is_banned, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+    `INSERT INTO users (id, email, username, display_name, search_text, password_hash, bio, can_upload, is_admin, role, is_banned, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
   ).run(
     id,
     input.email.trim().toLowerCase(),
@@ -163,6 +178,7 @@ export function createUser(input: {
     null,
     isAdmin ? 1 : 0,
     isAdmin ? 1 : 0,
+    isAdmin ? 'admin' : 'user',
     Date.now(),
   )
   grantPoints(id, 'welcome', WELCOME_POINTS, 'welcome')
@@ -232,7 +248,13 @@ export function bumpSessionVersion(id: string): void {
 }
 
 export function countAdmins(): number {
-  return Number((db.prepare('SELECT COUNT(*) AS n FROM users WHERE is_admin = 1').get() as Row).n)
+  return Number(
+    (
+      db
+        .prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'admin' OR is_admin = 1")
+        .get() as Row
+    ).n,
+  )
 }
 
 export function userTrackFileNames(userId: string): string[] {
@@ -273,6 +295,7 @@ export type TrackFilter = {
   limit?: number
   offset?: number
   sort?: 'new' | 'oldest' | 'popular'
+  reviewStatus?: 'approved' | 'pending' | 'rejected' | 'all'
 }
 
 function likeClause(q: string): string {
@@ -310,6 +333,11 @@ export function listTracks(filter: TrackFilter = {}): Track[] {
   if (filter.q && filter.q.trim()) {
     where.push("t.search_text LIKE ? ESCAPE '\\'")
     params.push(likeClause(filter.q.trim().toLowerCase()))
+  }
+  const reviewStatus = filter.reviewStatus ?? 'approved'
+  if (reviewStatus !== 'all') {
+    where.push('t.review_status = ?')
+    params.push(reviewStatus)
   }
 
   const order =
@@ -360,8 +388,8 @@ export function createTrack(input: {
     .join(' ')
     .toLowerCase()
   db.prepare(
-    `INSERT INTO tracks (id, title, artist, album, genre, duration, file_name, mime_type, size, uploader_id, play_count, search_text, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+    `INSERT INTO tracks (id, title, artist, album, genre, duration, file_name, mime_type, size, uploader_id, play_count, review_status, search_text, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'pending', ?, ?)`,
   ).run(
     id,
     input.title,
@@ -392,7 +420,10 @@ export function updateTrack(
   const genre = patch.genre === undefined ? (track.genre as string | null) : patch.genre
   const searchText = [title, artist, album ?? ''].join(' ').toLowerCase()
   db.prepare(
-    'UPDATE tracks SET title = ?, artist = ?, album = ?, genre = ?, search_text = ? WHERE id = ?',
+    `UPDATE tracks
+     SET title = ?, artist = ?, album = ?, genre = ?, search_text = ?,
+         review_status = 'pending', review_note = NULL, reviewed_by = NULL, reviewed_at = NULL
+     WHERE id = ?`,
   ).run(title, artist, album, genre, searchText, id)
   return true
 }
@@ -435,6 +466,7 @@ export function recentlyPlayed(userId: string, limit = 8): Track[] {
       `SELECT t.*, 1 AS liked FROM tracks t
        JOIN (SELECT track_id, MAX(played_at) AS last FROM plays WHERE user_id = ? GROUP BY track_id) p
          ON p.track_id = t.id
+       WHERE t.review_status = 'approved'
        ORDER BY p.last DESC LIMIT ?`,
     )
     .all(userId, limit) as Row[]
@@ -763,7 +795,7 @@ export function getPlaylistTracks(playlistId: string, viewerId?: string | null):
       `SELECT t.*, (SELECT COUNT(*) FROM likes l WHERE l.track_id = t.id AND l.user_id = ?) AS liked
        FROM tracks t
        JOIN playlist_tracks pt ON pt.track_id = t.id
-       WHERE pt.playlist_id = ?
+       WHERE pt.playlist_id = ? AND t.review_status = 'approved'
        ORDER BY pt.position ASC`,
     )
     .all(viewerId ?? '', playlistId) as Row[]
@@ -807,9 +839,9 @@ export function reorderPlaylist(playlistId: string, ownerId: string, orderedTrac
 
 export function listArtists(q?: string, limit = 24): ArtistSummary[] {
   const params: (string | number)[] = []
-  let where = ''
+  let where = "WHERE t.review_status = 'approved'"
   if (q && q.trim()) {
-    where = "WHERE LOWER(artist) LIKE ? ESCAPE '\\' OR search_text LIKE ? ESCAPE '\\'"
+    where += " AND (LOWER(artist) LIKE ? ESCAPE '\\' OR search_text LIKE ? ESCAPE '\\')"
     params.push(likeClause(q.toLowerCase()), likeClause(q.toLowerCase()))
   }
   const rows = db
@@ -829,8 +861,12 @@ export function listArtists(q?: string, limit = 24): ArtistSummary[] {
 /* ---------------------------------- stats --------------------------------- */
 
 export function libraryStats(userId: string) {
-  const tracks = db.prepare('SELECT COUNT(*) AS n FROM tracks').get() as Row
-  const artists = db.prepare('SELECT COUNT(DISTINCT artist) AS n FROM tracks').get() as Row
+  const tracks = db
+    .prepare("SELECT COUNT(*) AS n FROM tracks WHERE review_status = 'approved'")
+    .get() as Row
+  const artists = db
+    .prepare("SELECT COUNT(DISTINCT artist) AS n FROM tracks WHERE review_status = 'approved'")
+    .get() as Row
   const uploads = db.prepare('SELECT COUNT(*) AS n FROM tracks WHERE uploader_id = ?').get(userId) as Row
   const likes = db.prepare('SELECT COUNT(*) AS n FROM likes WHERE user_id = ?').get(userId) as Row
   return {
@@ -852,7 +888,8 @@ export function listAdminUsers(): AdminUserRow[] {
     .prepare(
       `SELECT u.*,
         (SELECT COUNT(*) FROM tracks t WHERE t.uploader_id = u.id) AS uploads,
-        (SELECT COALESCE(SUM(size), 0) FROM tracks t WHERE t.uploader_id = u.id) AS upload_bytes
+        (SELECT COALESCE(SUM(size), 0) FROM tracks t WHERE t.uploader_id = u.id) AS upload_bytes,
+        (SELECT COUNT(*) FROM playlists p WHERE p.owner_id = u.id) AS playlists
        FROM users u ORDER BY u.created_at ASC`,
     )
     .all() as Row[]
@@ -860,6 +897,7 @@ export function listAdminUsers(): AdminUserRow[] {
     ...publicUser(mapUser(row)),
     uploads: Number(row.uploads ?? 0),
     uploadBytes: Number(row.upload_bytes ?? 0),
+    playlists: Number(row.playlists ?? 0),
   }))
 }
 
@@ -872,14 +910,60 @@ export function setUserFlags(
   const canUpload = patch.canUpload === undefined ? Number(user.can_upload) : patch.canUpload ? 1 : 0
   const isAdmin = patch.isAdmin === undefined ? Number(user.is_admin) : patch.isAdmin ? 1 : 0
   const isBanned = patch.isBanned === undefined ? Number(user.is_banned) : patch.isBanned ? 1 : 0
-  // Never lock the last admin out completely: keep admin access if flag was set.
-  db.prepare('UPDATE users SET can_upload = ?, is_admin = ?, is_banned = ? WHERE id = ?').run(
-    canUpload,
-    isAdmin,
-    isBanned,
+  const role =
+    patch.isAdmin === undefined
+      ? String(user.role ?? (Number(user.is_admin) === 1 ? 'admin' : 'user'))
+      : isAdmin
+        ? 'admin'
+        : user.role === 'moderator'
+          ? 'moderator'
+          : 'user'
+  db.prepare(
+    'UPDATE users SET can_upload = ?, is_admin = ?, role = ?, is_banned = ? WHERE id = ?',
+  ).run(canUpload, isAdmin, role, isBanned, id)
+  return true
+}
+
+/** Changes the account role and keeps the legacy is_admin flag in sync. */
+export function setUserRole(id: string, role: UserRole): boolean {
+  const user = db.prepare('SELECT id FROM users WHERE id = ?').get(id)
+  if (!user) return false
+  db.prepare('UPDATE users SET role = ?, is_admin = ? WHERE id = ?').run(
+    role,
+    role === 'admin' ? 1 : 0,
     id,
   )
   return true
+}
+
+export function reviewTrack(
+  id: string,
+  status: 'approved' | 'rejected',
+  reviewerId: string,
+  note: string | null,
+): boolean {
+  const result = db
+    .prepare(
+      `UPDATE tracks
+       SET review_status = ?, review_note = ?, reviewed_by = ?, reviewed_at = ?
+       WHERE id = ?`,
+    )
+    .run(status, note ? note.slice(0, 500) : null, reviewerId, Date.now(), id)
+  return Number(result.changes) > 0
+}
+
+export function countPendingTracks(): number {
+  return Number(
+    (db.prepare("SELECT COUNT(*) AS n FROM tracks WHERE review_status = 'pending'").get() as Row).n,
+  )
+}
+
+/** Every playlist, including private ones, for the moderation view. */
+export function listAllPlaylists(limit = 300): Playlist[] {
+  const rows = db
+    .prepare(`${PLAYLIST_SELECT} ORDER BY p.created_at DESC LIMIT ?`)
+    .all(limit) as Row[]
+  return rows.map(mapPlaylist)
 }
 
 export function userUploadStats(userId: string): { count: number; bytes: number } {

@@ -1,6 +1,8 @@
 import type { AvatarFrame } from './avatar-frame'
 import type { StatusColor } from './status'
 
+export type UserRole = 'user' | 'moderator' | 'admin'
+
 export type UserPublic = {
   id: string
   email: string
@@ -15,6 +17,8 @@ export type UserPublic = {
   createdAt: number
   canUpload: boolean
   isAdmin: boolean
+  isModerator: boolean
+  role: UserRole
   isBanned: boolean
   sessionVersion: number
 }
@@ -46,6 +50,8 @@ export type Track = {
   playCount: number
   createdAt: number
   liked: boolean
+  reviewStatus: 'pending' | 'approved' | 'rejected'
+  reviewNote: string | null
 }
 
 export type Playlist = {
@@ -97,4 +103,5 @@ export type Report = {
 export type AdminUserRow = UserPublic & {
   uploads: number
   uploadBytes: number
+  playlists: number
 }

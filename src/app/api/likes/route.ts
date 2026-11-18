@@ -14,10 +14,16 @@ export async function POST(request: Request) {
   }
 
   const trackId = body.trackId
-  if (!trackId || !getTrack(trackId)) {
+  const track = trackId ? getTrack(trackId) : null
+  if (
+    !track ||
+    (track.reviewStatus !== 'approved' &&
+      track.uploaderId !== user.id &&
+      !user.isModerator)
+  ) {
     return NextResponse.json({ error: 'Трек не найден' }, { status: 404 })
   }
 
-  const liked = toggleLike(user.id, trackId)
+  const liked = toggleLike(user.id, track.id)
   return NextResponse.json({ liked })
 }

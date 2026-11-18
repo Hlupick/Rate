@@ -97,15 +97,30 @@ export function TrackRow({
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <TrackAvatar title={track.title} className="h-10 w-10" />
         <div className="min-w-0">
-          <Link
-            href={`/track/${track.id}`}
-            className={cn(
-              'block truncate text-[14px] font-medium hover:underline',
-              isCurrent ? 'text-accent' : 'text-ink',
+          <div className="flex items-center gap-1.5">
+            <Link
+              href={`/track/${track.id}`}
+              className={cn(
+                'block truncate text-[14px] font-medium hover:underline',
+                isCurrent ? 'text-accent' : 'text-ink',
+              )}
+            >
+              {track.title}
+            </Link>
+            {track.reviewStatus !== 'approved' && (
+              <span
+                title={track.reviewNote ?? undefined}
+                className={cn(
+                  'shrink-0 rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide',
+                  track.reviewStatus === 'pending'
+                    ? 'bg-amber-500/15 text-amber-200'
+                    : 'bg-red-500/15 text-red-300',
+                )}
+              >
+                {track.reviewStatus === 'pending' ? 'на проверке' : 'отклонён'}
+              </span>
             )}
-          >
-            {track.title}
-          </Link>
+          </div>
           <Link
             href={`/artist/${encodeURIComponent(track.artist)}`}
             className="block truncate text-[12px] text-muted hover:text-ink hover:underline"

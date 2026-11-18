@@ -33,7 +33,7 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
   if (!playlist) notFound()
 
   const isOwner = user?.id === playlist.ownerId
-  if (!playlist.isPublic && !isOwner) notFound()
+  if (!playlist.isPublic && !isOwner && !user?.isModerator) notFound()
 
   const tracks = getPlaylistTracks(playlist.id, user?.id)
   const owner = getUserByUsername(playlist.ownerUsername)
@@ -109,7 +109,7 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
         <div className="mt-5">
           {tracks.length === 0 ? (
             <div className="rounded-lg border border-dashed border-line px-6 py-14 text-center">
-              <p className="text-base font-semibold">В плейлисте пока нет треков</p>
+              <p className="text-lg font-semibold text-ink">В плейлисте пока нет треков</p>
               <p className="mx-auto mt-1 max-w-md text-sm text-muted">
                 Откройте любой трек, нажмите «…» и выберите «Добавить в плейлист».
               </p>

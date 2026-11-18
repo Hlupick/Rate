@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Heart, Home, Library, MessageCircle, Plus, Search, Smartphone, Upload } from 'lucide-react'
+import { Heart, Home, Library, MessageCircle, Plus, Search, ShieldCheck, Smartphone, Upload } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { Logo } from '@/components/ui/Logo'
 import { CreatePlaylistDialog } from '@/components/playlist/CreatePlaylistDialog'
@@ -20,7 +20,7 @@ type SidebarPlaylist = {
 }
 
 type SidebarProps = {
-  user: { displayName: string; username: string } | null
+  user: { displayName: string; username: string; isModerator?: boolean } | null
   playlists: SidebarPlaylist[]
 }
 
@@ -34,6 +34,13 @@ const NAV = [
 export function Sidebar({ user, playlists }: SidebarProps) {
   const pathname = usePathname()
   const [createOpen, setCreateOpen] = useState(false)
+  const nav = user?.isModerator
+    ? [
+        ...NAV.slice(0, 3),
+        { href: '/moderation', label: 'Модерация', icon: ShieldCheck },
+        NAV[3],
+      ]
+    : NAV
 
   return (
     <aside className="hidden w-[292px] shrink-0 flex-col gap-2 md:flex">
@@ -42,7 +49,7 @@ export function Sidebar({ user, playlists }: SidebarProps) {
           <Logo />
         </Link>
         <nav className="space-y-1">
-          {NAV.map((item) => {
+          {nav.map((item) => {
             const active = pathname === item.href
             return (
               <Link

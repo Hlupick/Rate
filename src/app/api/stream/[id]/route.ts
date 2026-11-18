@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 import { Readable } from 'node:stream'
+import { getCurrentUser } from '@/lib/auth'
 import { getTrack } from '@/lib/queries'
 import { TRACKS_DIR } from '@/lib/db'
 
@@ -57,6 +58,12 @@ export async function GET(
   const { id } = await params
   const track = getTrack(id)
   if (!track) return new Response('Not found', { status: 404 })
+  if (track.reviewStatus !== 'approved') {
+    const user = await getCurrentUser()
+    if (!user || (user.id !== track.uploaderId && !user.isModerator)) {
+      return new Response('Not found', { status: 404 })
+    }
+  }
 
   const filePath = path.join(TRACKS_DIR, track.fileName)
   try {
@@ -79,6 +86,12 @@ export async function HEAD(
   const { id } = await params
   const track = getTrack(id)
   if (!track) return new Response(null, { status: 404 })
+  if (track.reviewStatus !== 'approved') {
+    const user = await getCurrentUser()
+    if (!user || (user.id !== track.uploaderId && !user.isModerator)) {
+      return new Response(null, { status: 404 })
+    }
+  }
   try {
     const stat = await fsp.stat(path.join(TRACKS_DIR, track.fileName))
     return new Response(null, {

@@ -13,8 +13,9 @@ import {
   listAdminUsers,
   setReportStatus,
   setUserFlags,
+  setUserRole,
 } from '@/lib/queries'
-import type { UserPublic } from '@/lib/types'
+import type { UserPublic, UserRole } from '@/lib/types'
 
 async function requireAdmin(): Promise<UserPublic> {
   const user = await getCurrentUser()
@@ -60,6 +61,25 @@ export async function setUserFlagAction(formData: FormData) {
     setUserFlags(userId, { [field]: value })
   }
   revalidatePath('/admin')
+}
+
+export async function setUserRoleAction(formData: FormData) {
+  const admin = await requireAdmin()
+  const userId = String(formData.get('userId') ?? '')
+  const role = String(formData.get('role') ?? '') as UserRole
+  if (!userId || !['user', 'moderator', 'admin'].includes(role)) return
+
+  const target = listAdminUsers().find((row) => row.id === userId)
+  if (!target) return
+  if (target.role === 'admin' && role !== 'admin') {
+    const admins = listAdminUsers().filter((row) => row.role === 'admin')
+    if (admins.length <= 1) return
+  }
+  if (target.id === admin.id && role !== 'admin') return
+
+  setUserRole(userId, role)
+  revalidatePath('/admin')
+  revalidatePath('/moderation')
 }
 
 export async function deleteTrackAction(formData: FormData) {

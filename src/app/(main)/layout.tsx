@@ -19,6 +19,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         avatar: user.avatar,
         avatarFrame: user.avatarFrame,
         isAdmin: user.isAdmin,
+        isModerator: user.isModerator,
       }
     : null
 

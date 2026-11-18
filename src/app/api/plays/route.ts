@@ -24,10 +24,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false }, { status: 400 })
   }
 
-  if (!body.trackId || !getTrack(body.trackId)) {
+  const track = body.trackId ? getTrack(body.trackId) : null
+  if (
+    !track ||
+    (track.reviewStatus !== 'approved' &&
+      track.uploaderId !== user.id &&
+      !user.isModerator)
+  ) {
     return NextResponse.json({ ok: false }, { status: 404 })
   }
 
-  recordPlay(user.id, body.trackId)
+  recordPlay(user.id, track.id)
   return NextResponse.json({ ok: true })
 }

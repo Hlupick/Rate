@@ -29,6 +29,7 @@ import {
   deleteTrackAction,
   setReportStatusAction,
   setUserFlagAction,
+  setUserRoleAction,
 } from './actions'
 
 export const metadata: Metadata = {
@@ -121,7 +122,7 @@ export default async function AdminPage({
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-white/15 bg-white/[0.06] px-4 py-3">
           <KeyRound size={16} />
           <span className="text-sm">Новый инвайт-код:</span>
-          <code className="rounded bg-black/40 px-2 py-1 font-mono text-base tracking-[0.18em]">
+          <code className="rounded bg-black/40 px-2 py-1 font-mono text-[16px] text-ink tracking-[0.18em]">
             {createdCode}
           </code>
           <CopyButton value={createdCode} />
@@ -342,6 +343,11 @@ export default async function AdminPage({
                       {row.isAdmin && (
                         <span className="rounded bg-white/10 px-1.5 py-0.5 text-ink">админ</span>
                       )}
+                      {row.role === 'moderator' && (
+                        <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-sky-200">
+                          модератор
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-3 py-3">
@@ -360,6 +366,17 @@ export default async function AdminPage({
                         <input type="hidden" name="value" value={row.isAdmin ? '0' : '1'} />
                         <button type="submit" className={SMALL_BUTTON}>
                           {row.isAdmin ? 'Снять админа' : 'Сделать админом'}
+                        </button>
+                      </form>
+                      <form action={setUserRoleAction}>
+                        <input type="hidden" name="userId" value={row.id} />
+                        <input
+                          type="hidden"
+                          name="role"
+                          value={row.role === 'moderator' ? 'user' : 'moderator'}
+                        />
+                        <button type="submit" className={SMALL_BUTTON}>
+                          {row.role === 'moderator' ? 'Снять модератора' : 'Сделать модератором'}
                         </button>
                       </form>
                       <form action={setUserFlagAction}>

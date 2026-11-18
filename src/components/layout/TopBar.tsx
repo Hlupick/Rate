@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, LogOut, Settings, Shield, Upload, User } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LogOut, Settings, Shield, ShieldCheck, Upload, User } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
 import { Avatar } from '@/components/ui/Avatar'
 import { StreakPill } from '@/components/streak/StreakPill'
@@ -16,6 +16,7 @@ type TopBarProps = {
     avatar?: string | null
     avatarFrame?: string | null
     isAdmin?: boolean
+    isModerator?: boolean
   } | null
 }
 
@@ -120,6 +121,15 @@ export function TopBar({ user }: TopBarProps) {
                     >
                       <Settings size={15} /> Настройки
                     </Link>
+                    {user.isModerator && (
+                      <Link
+                        href="/moderation"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted transition hover:bg-white/5 hover:text-ink"
+                      >
+                        <ShieldCheck size={15} /> Модерация
+                      </Link>
+                    )}
                     {user.isAdmin && (
                       <Link
                         href="/admin"

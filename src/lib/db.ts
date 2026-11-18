@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
   last_seen_at INTEGER,
   can_upload INTEGER NOT NULL DEFAULT 0,
   is_admin INTEGER NOT NULL DEFAULT 0,
+  role TEXT NOT NULL DEFAULT 'user',
   is_banned INTEGER NOT NULL DEFAULT 0,
   session_version INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL
@@ -51,6 +52,10 @@ CREATE TABLE IF NOT EXISTS tracks (
   cover TEXT,
   uploader_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   play_count INTEGER NOT NULL DEFAULT 0,
+  review_status TEXT NOT NULL DEFAULT 'pending',
+  review_note TEXT,
+  reviewed_by TEXT,
+  reviewed_at INTEGER,
   search_text TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL
 );
@@ -258,6 +263,11 @@ function createDb() {
     'ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
     'ALTER TABLE users ADD COLUMN avatar_frame TEXT',
     'ALTER TABLE users ADD COLUMN points INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT \'user\'',
+    'ALTER TABLE tracks ADD COLUMN review_status TEXT NOT NULL DEFAULT \'pending\'',
+    'ALTER TABLE tracks ADD COLUMN review_note TEXT',
+    'ALTER TABLE tracks ADD COLUMN reviewed_by TEXT',
+    'ALTER TABLE tracks ADD COLUMN reviewed_at INTEGER',
     'ALTER TABLE users ADD COLUMN search_text TEXT NOT NULL DEFAULT \'\'',
     'ALTER TABLE users ADD COLUMN last_seen_at INTEGER',
     'ALTER TABLE chat_members ADD COLUMN typing_at INTEGER NOT NULL DEFAULT 0',
@@ -272,6 +282,7 @@ function createDb() {
       /* column already exists */
     }
   }
+  db.exec('CREATE INDEX IF NOT EXISTS idx_tracks_review ON tracks(review_status, created_at)')
   // Search text is lowercased by JS so Cyrillic names are found regardless of case.
   const missingSearch = db
     .prepare("SELECT id, username, display_name FROM users WHERE search_text = ''")
@@ -314,6 +325,16 @@ function createDb() {
     db.prepare("UPDATE users SET status = 'boss', status_color = 'glass' WHERE username = 'stas'").run()
     db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('boss_status_v1', '1')").run()
   }
+  // Existing tracks were published before moderation existed; keep them.
+  const tracksReviewed = db
+    .prepare("SELECT value FROM meta WHERE key = 'tracks_review_v1'")
+    .get()
+  if (!tracksReviewed) {
+    db.prepare("UPDATE tracks SET review_status = 'approved'").run()
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('tracks_review_v1', '1')").run()
+  }
+  // Keep the legacy is_admin flag and the new role column in sync.
+  db.prepare("UPDATE users SET role = 'admin' WHERE is_admin = 1 AND role <> 'admin'").run()
   // Codes are short-lived; drop leftovers so the tables stay small.
   db.exec('DELETE FROM email_verifications WHERE expires_at < ' + Date.now())
   db.exec('DELETE FROM password_resets WHERE expires_at < ' + Date.now())

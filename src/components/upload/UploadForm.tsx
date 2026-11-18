@@ -359,16 +359,16 @@ export function UploadForm() {
                       </span>
                     )}
                     {item.status === 'done' && (
-                      <span className="shrink-0 text-[11px] text-accent">опубликован</span>
+                      <span className="shrink-0 text-[11px] text-amber-200">на проверке</span>
                     )}
                   </div>
 
                   {item.status === 'done' ? (
                     <p className="mt-1 text-xs text-muted">
-                      Трек появился в библиотеке.{' '}
+                      Трек отправлен на проверку. После одобрения появится в библиотеке.{' '}
                       {item.trackId && (
                         <a href={`/track/${item.trackId}`} className="underline hover:text-ink">
-                          Открыть
+                          Посмотреть
                         </a>
                       )}
                     </p>
