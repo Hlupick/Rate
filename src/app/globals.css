@@ -563,6 +563,29 @@ textarea {
   }
 }
 
+/*
+ * Small inline avatars keep the ring inside their own box: on 20–32 px sizes
+ * an outside ring or its glow would overlap names, chips and buttons.
+ * The large profile avatar keeps the full outside treatment.
+ */
+.avatar-frame:not(.avatar-frame-lg) {
+  box-shadow: none;
+  animation: none;
+}
+.avatar-frame:not(.avatar-frame-lg)::before {
+  display: none;
+}
+.avatar-frame:not(.avatar-frame-lg)::after {
+  inset: 0;
+  filter: none;
+}
+.avatar-frame:not(.avatar-frame-lg).frame-storm::after {
+  padding: 3.5px;
+}
+.avatar-frame:not(.avatar-frame-lg) .storm-bolts {
+  display: none;
+}
+
 /* ------------------------------ boss status ------------------------------- */
 
 /* Exclusive status for @stas: steel outline, shimmering text, bolts inside. */
