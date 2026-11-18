@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { HelpCircle } from 'lucide-react'
 import {
   LISTENING_POINTS_DAILY_CAP,
   POINTS_PER_LISTENING_MINUTE,
@@ -12,7 +11,7 @@ import {
 
 const TRACKS_PER_DAY = Math.floor(UPLOAD_POINTS_DAILY_CAP / UPLOAD_POINTS)
 
-/** Small "?" next to the point balance with the earning rules. */
+/** Hovering the point balance explains how points are earned. */
 export function PointsHint({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLSpanElement>(null)
@@ -36,28 +35,27 @@ export function PointsHint({ children }: { children: ReactNode }) {
   return (
     <span
       ref={rootRef}
-      className="relative inline-flex items-center gap-1.5"
+      role="button"
+      tabIndex={0}
+      aria-label="Как заработать баллы"
+      aria-expanded={open}
+      aria-describedby={open ? 'points-hint' : undefined}
+      className="relative inline-flex cursor-help items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/40"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
+      onClick={() => setOpen(true)}
+      onFocus={() => setOpen(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false)
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          setOpen(true)
+        }
+      }}
     >
       {children}
-      <button
-        type="button"
-        aria-label="Как заработать баллы"
-        aria-expanded={open}
-        aria-describedby={open ? 'points-hint' : undefined}
-        title="Как заработать баллы"
-        onClick={() => setOpen(true)}
-        onFocus={() => setOpen(true)}
-        onBlur={(event) => {
-          if (!event.currentTarget.parentElement?.contains(event.relatedTarget as Node)) {
-            setOpen(false)
-          }
-        }}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/15 bg-black/40 text-muted backdrop-blur-md transition hover:border-white/30 hover:text-ink"
-      >
-        <HelpCircle size={14} aria-hidden />
-      </button>
 
       {open && (
         <span
