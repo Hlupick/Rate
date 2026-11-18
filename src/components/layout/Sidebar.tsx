@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Heart, Home, Library, ListPlus, Plus, Search, Smartphone, Upload } from 'lucide-react'
+import { Heart, Home, Library, Plus, Search, Smartphone, Upload } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { Logo } from '@/components/ui/Logo'
 import { CreatePlaylistDialog } from '@/components/playlist/CreatePlaylistDialog'
@@ -150,15 +150,6 @@ export function Sidebar({ user, playlists }: SidebarProps) {
                 </div>
                 Создать плейлист
               </button>
-              <Link
-                href="/import"
-                className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm text-muted transition hover:bg-white/5 hover:text-ink"
-              >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-dashed border-line">
-                  <ListPlus size={18} />
-                </div>
-                Импорт плейлиста
-              </Link>
             </>
           ) : (
             <div className="px-3 py-4">

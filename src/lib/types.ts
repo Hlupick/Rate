@@ -40,22 +40,10 @@ export type Playlist = {
   isPublic: boolean
   createdAt: number
   trackCount: number
-  missingCount: number
   cover: string | null
   avatar: string | null
-  sourceUrl: string | null
-  source: string | null
   ownerName: string
   ownerUsername: string
-}
-
-export type PlaylistDraft = {
-  id: string
-  playlistId: string
-  position: number
-  title: string
-  artist: string
-  createdAt: number
 }
 
 export type ArtistSummary = {

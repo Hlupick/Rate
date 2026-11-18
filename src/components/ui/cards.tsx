@@ -18,10 +18,7 @@ export function PlaylistCard({ playlist }: { playlist: Playlist }) {
       />
       <div className="truncate text-[14px] font-semibold">{playlist.name}</div>
       <div className="mt-0.5 line-clamp-2 text-[12.5px] leading-snug text-muted">
-        {playlist.description ||
-          `Плейлист · ${tracksWord(playlist.trackCount)}${
-            playlist.missingCount > 0 ? ` · ${playlist.missingCount} не загружено` : ''
-          }`}
+        {playlist.description || `Плейлист · ${tracksWord(playlist.trackCount)}`}
       </div>
     </Link>
   )

@@ -5,7 +5,6 @@ import type {
   ArtistSummary,
   Invite,
   Playlist,
-  PlaylistDraft,
   Report,
   Track,
   UserPublic,
@@ -60,11 +59,8 @@ function mapPlaylist(row: Row): Playlist {
     isPublic: Number(row.is_public ?? 1) === 1,
     createdAt: Number(row.created_at),
     trackCount: Number(row.track_count ?? 0),
-    missingCount: Number(row.missing_count ?? 0),
     cover: row.cover ? String(row.cover) : null,
     avatar: row.avatar ? String(row.avatar) : null,
-    sourceUrl: row.source_url ? String(row.source_url) : null,
-    source: row.source ? String(row.source) : null,
     ownerName: String(row.owner_name ?? ''),
     ownerUsername: String(row.owner_username ?? ''),
   }
@@ -511,7 +507,6 @@ export function countLikes(userId: string): number {
 const PLAYLIST_SELECT = `
   SELECT p.*,
     (SELECT COUNT(*) FROM playlist_tracks pt WHERE pt.playlist_id = p.id) AS track_count,
-    (SELECT COUNT(*) FROM playlist_drafts d WHERE d.playlist_id = p.id) AS missing_count,
     u.display_name AS owner_name,
     u.username AS owner_username
   FROM playlists p JOIN users u ON u.id = p.owner_id
@@ -547,30 +542,13 @@ export function createPlaylist(
   ownerId: string,
   name: string,
   description: string | null,
-  meta?: { sourceUrl?: string | null; source?: string | null; cover?: string | null },
 ): Playlist {
   const id = randomUUID()
   db.prepare(
-    `INSERT INTO playlists (id, name, description, owner_id, is_public, source_url, source, cover, created_at)
-     VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)`,
-  ).run(
-    id,
-    name.trim(),
-    description,
-    ownerId,
-    meta?.sourceUrl ?? null,
-    meta?.source ?? null,
-    meta?.cover ?? null,
-    Date.now(),
-  )
+    `INSERT INTO playlists (id, name, description, owner_id, is_public, created_at)
+     VALUES (?, ?, ?, ?, 1, ?)`,
+  ).run(id, name.trim(), description, ownerId, Date.now())
   return getPlaylist(id)!
-}
-
-export function findPlaylistBySource(ownerId: string, sourceUrl: string): Playlist | null {
-  const row = db
-    .prepare('SELECT id FROM playlists WHERE owner_id = ? AND source_url = ? LIMIT 1')
-    .get(ownerId, sourceUrl) as Row | undefined
-  return row ? getPlaylist(String(row.id)) : null
 }
 
 export function updatePlaylist(
@@ -646,61 +624,6 @@ export function reorderPlaylist(playlistId: string, ownerId: string, orderedTrac
   const update = db.prepare('UPDATE playlist_tracks SET position = ? WHERE playlist_id = ? AND track_id = ?')
   orderedTrackIds.forEach((trackId, index) => update.run(index + 1, playlistId, trackId))
   return true
-}
-
-/* ----------------------------- playlist drafts ---------------------------- */
-
-function mapDraft(row: Row): PlaylistDraft {
-  return {
-    id: String(row.id),
-    playlistId: String(row.playlist_id),
-    position: Number(row.position),
-    title: String(row.title),
-    artist: String(row.artist ?? ''),
-    createdAt: Number(row.created_at),
-  }
-}
-
-export function getPlaylistDrafts(playlistId: string): PlaylistDraft[] {
-  const rows = db
-    .prepare('SELECT * FROM playlist_drafts WHERE playlist_id = ? ORDER BY position ASC, created_at ASC')
-    .all(playlistId) as Row[]
-  return rows.map(mapDraft)
-}
-
-function ownsPlaylist(playlistId: string, ownerId: string): boolean {
-  const row = db.prepare('SELECT owner_id FROM playlists WHERE id = ?').get(playlistId) as Row | undefined
-  return Boolean(row && row.owner_id === ownerId)
-}
-
-export function addPlaylistDraft(
-  playlistId: string,
-  ownerId: string,
-  title: string,
-  artist: string,
-  position: number,
-): boolean {
-  if (!ownsPlaylist(playlistId, ownerId)) return false
-  db.prepare(
-    'INSERT INTO playlist_drafts (id, playlist_id, position, title, artist, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-  ).run(randomUUID(), playlistId, position, title.slice(0, 200), artist.slice(0, 200), Date.now())
-  return true
-}
-
-export function deletePlaylistDraft(
-  draftId: string,
-  playlistId: string,
-  ownerId: string,
-): boolean {
-  const row = db.prepare('SELECT playlist_id FROM playlist_drafts WHERE id = ?').get(draftId) as Row | undefined
-  if (!row || String(row.playlist_id) !== playlistId) return false
-  if (!ownsPlaylist(playlistId, ownerId)) return false
-  const result = db.prepare('DELETE FROM playlist_drafts WHERE id = ?').run(draftId)
-  return Number(result.changes) > 0
-}
-
-export function clearPlaylistDrafts(playlistId: string): void {
-  db.prepare('DELETE FROM playlist_drafts WHERE playlist_id = ?').run(playlistId)
 }
 
 /* --------------------------------- artists -------------------------------- */
