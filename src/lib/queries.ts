@@ -21,6 +21,7 @@ function mapUser(row: Row): UserRecord {
     username: String(row.username),
     displayName: String(row.display_name),
     bio: row.bio ? String(row.bio) : null,
+    status: row.status ? String(row.status) : null,
     avatar: row.avatar ? String(row.avatar) : null,
     cover: row.cover ? String(row.cover) : null,
     createdAt: Number(row.created_at),
@@ -140,6 +141,7 @@ export function updateUserProfile(
   patch: {
     displayName?: string
     bio?: string | null
+    status?: string | null
     avatar?: string | null
     cover?: string | null
   },
@@ -147,10 +149,11 @@ export function updateUserProfile(
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as Row | undefined
   if (!user) return null
   db.prepare(
-    'UPDATE users SET display_name = ?, bio = ?, avatar = ?, cover = ? WHERE id = ?',
+    'UPDATE users SET display_name = ?, bio = ?, status = ?, avatar = ?, cover = ? WHERE id = ?',
   ).run(
     patch.displayName?.trim() || String(user.display_name),
     patch.bio === undefined ? user.bio : patch.bio,
+    patch.status === undefined ? user.status : patch.status,
     patch.avatar === undefined ? user.avatar : patch.avatar,
     patch.cover === undefined ? user.cover : patch.cover,
     id,

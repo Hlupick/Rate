@@ -4,6 +4,7 @@ export type UserPublic = {
   username: string
   displayName: string
   bio: string | null
+  status: string | null
   avatar: string | null
   cover: string | null
   createdAt: number

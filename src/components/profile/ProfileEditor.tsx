@@ -5,15 +5,18 @@ import { useRouter } from 'next/navigation'
 import { Pencil } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { ImagePicker } from '@/components/ui/ImagePicker'
+import { STATUS_MAX_LENGTH, clampStatus, countStatusChars, limitStatusChars } from '@/lib/status'
 
 export function ProfileEditor({
   displayName,
   bio,
+  status,
   avatar,
   cover,
 }: {
   displayName: string
   bio: string | null
+  status: string | null
   avatar: string | null
   cover: string | null
 }) {
@@ -21,6 +24,7 @@ export function ProfileEditor({
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(displayName)
   const [about, setAbout] = useState(bio ?? '')
+  const [label, setLabel] = useState(status ?? '')
   const [newAvatar, setNewAvatar] = useState(avatar)
   const [newCover, setNewCover] = useState(cover)
   const [busy, setBusy] = useState(false)
@@ -37,6 +41,7 @@ export function ProfileEditor({
         body: JSON.stringify({
           displayName: name.trim(),
           bio: about.trim() || null,
+          status: clampStatus(label) || null,
           avatar: newAvatar,
           cover: newCover,
         }),
@@ -88,6 +93,31 @@ export function ProfileEditor({
                 maxLength={40}
                 className="input"
               />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <label className="text-xs font-medium text-muted" htmlFor="profile-status">
+                  Статус
+                </label>
+                <span
+                  className={`text-[11px] tabular-nums ${
+                    countStatusChars(label) >= STATUS_MAX_LENGTH ? 'text-amber-300' : 'text-muted'
+                  }`}
+                >
+                  {countStatusChars(label)}/{STATUS_MAX_LENGTH}
+                </span>
+              </div>
+              <input
+                id="profile-status"
+                value={label}
+                onChange={(event) => setLabel(limitStatusChars(event.target.value))}
+                placeholder="например, в поиске нового"
+                aria-describedby="profile-status-hint"
+                className="input"
+              />
+              <p id="profile-status-hint" className="text-[11px] text-muted">
+                Короткая подпись рядом с ником в профиле. Оставьте пустым, чтобы скрыть.
+              </p>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted" htmlFor="profile-bio">
