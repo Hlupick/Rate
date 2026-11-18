@@ -50,11 +50,12 @@ export function ImagePicker({
   return (
     <div className="space-y-2">
       <div className="text-xs font-medium text-muted">{label}</div>
-      <div className="flex items-start gap-3">
+      <div className="flex flex-wrap items-start gap-3">
         <div
           className={cn(
             'relative shrink-0 overflow-hidden border border-line bg-panel-2',
             previewShape,
+            shape === 'banner' && 'w-full',
           )}
         >
           {url ? (

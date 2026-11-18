@@ -86,31 +86,38 @@ export function PlaylistMenu({
       </Menu>
 
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Изменить плейлист">
-        <div className="max-h-[70vh] space-y-5 overflow-y-auto pr-1">
-          <ImagePicker
-            label="Аватар плейлиста"
-            maxSize={512}
-            value={newAvatar}
-            onChange={setNewAvatar}
-          />
-          <ImagePicker label="Обложка плейлиста" value={newCover} onChange={setNewCover} />
-          <input
-            value={newName}
-            onChange={(event) => setNewName(event.target.value)}
-            maxLength={80}
-            placeholder="Название"
-            className="w-full rounded-md border border-line bg-panel-2 px-3 py-2.5 text-sm focus:border-white/40"
-          />
-          <textarea
-            value={newDescription}
-            onChange={(event) => setNewDescription(event.target.value)}
-            rows={3}
-            maxLength={200}
-            placeholder="Описание"
-            className="w-full resize-none rounded-md border border-line bg-panel-2 px-3 py-2.5 text-sm focus:border-white/40"
-          />
-          {error && <p className="text-xs text-red-400">{error}</p>}
-          <div className="flex justify-end gap-2">
+        <div className="space-y-4">
+          <div className="max-h-[55vh] space-y-5 overflow-y-auto pr-1">
+            <ImagePicker
+              label="Аватар плейлиста"
+              maxSize={512}
+              value={newAvatar}
+              onChange={setNewAvatar}
+            />
+            <ImagePicker
+              label="Обложка плейлиста"
+              shape="banner"
+              value={newCover}
+              onChange={setNewCover}
+            />
+            <input
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              maxLength={80}
+              placeholder="Название"
+              className="w-full rounded-md border border-line bg-panel-2 px-3 py-2.5 text-sm focus:border-white/40"
+            />
+            <textarea
+              value={newDescription}
+              onChange={(event) => setNewDescription(event.target.value)}
+              rows={3}
+              maxLength={200}
+              placeholder="Описание"
+              className="w-full resize-none rounded-md border border-line bg-panel-2 px-3 py-2.5 text-sm focus:border-white/40"
+            />
+            {error && <p className="text-xs text-red-400">{error}</p>}
+          </div>
+          <div className="flex justify-end gap-2 border-t border-line pt-4">
             <button
               onClick={() => setEditOpen(false)}
               className="rounded-full px-4 py-2 text-sm text-muted transition hover:text-ink"

@@ -62,42 +62,49 @@ export function ProfileEditor({
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title="Редактировать профиль">
-        <div className="max-h-[70vh] space-y-5 overflow-y-auto pr-1">
-          <ImagePicker
-            label="Аватар"
-            shape="circle"
-            maxSize={512}
-            value={newAvatar}
-            onChange={setNewAvatar}
-          />
-          <ImagePicker label="Обложка профиля" shape="banner" value={newCover} onChange={setNewCover} />
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted" htmlFor="profile-name">
-              Имя
-            </label>
-            <input
-              id="profile-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              maxLength={40}
-              className="input"
+        <div className="space-y-4">
+          <div className="max-h-[55vh] space-y-5 overflow-y-auto pr-1">
+            <ImagePicker
+              label="Аватар"
+              shape="circle"
+              maxSize={512}
+              value={newAvatar}
+              onChange={setNewAvatar}
             />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted" htmlFor="profile-bio">
-              О себе
-            </label>
-            <textarea
-              id="profile-bio"
-              value={about}
-              onChange={(event) => setAbout(event.target.value)}
-              rows={3}
-              maxLength={300}
-              className="input resize-none"
+            <ImagePicker
+              label="Обложка профиля"
+              shape="banner"
+              value={newCover}
+              onChange={setNewCover}
             />
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted" htmlFor="profile-name">
+                Имя
+              </label>
+              <input
+                id="profile-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={40}
+                className="input"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted" htmlFor="profile-bio">
+                О себе
+              </label>
+              <textarea
+                id="profile-bio"
+                value={about}
+                onChange={(event) => setAbout(event.target.value)}
+                rows={3}
+                maxLength={300}
+                className="input resize-none"
+              />
+            </div>
+            {error && <p className="text-xs text-red-400">{error}</p>}
           </div>
-          {error && <p className="text-xs text-red-400">{error}</p>}
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 border-t border-line pt-4">
             <button
               onClick={() => setOpen(false)}
               className="rounded-full px-4 py-2 text-sm text-muted transition hover:text-ink"
