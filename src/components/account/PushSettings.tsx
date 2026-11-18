@@ -5,6 +5,76 @@ import { Bell, BellOff, Loader2, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Prefs = { messages: boolean; social: boolean }
+type BrowserKind = 'chrome' | 'edge' | 'brave' | 'other'
+
+type PushErrorInfo = {
+  title: string
+  hint: string
+  steps: string[]
+}
+
+const CHROME_STEPS = [
+  'Откройте chrome://settings/content/notifications и разрешите уведомления для ratemusic.space.',
+  'Полностью закройте и снова откройте Chrome — все окна, не только вкладку.',
+  'Проверьте VPN, прокси, файрвол и блокировщики: сервисы Google для push не должны блокироваться.',
+  'Обновите Chrome и попробуйте снова.',
+  'Если не помогло — попробуйте другой профиль Chrome или Edge: в Edge push уже проверены.',
+]
+
+function describePushError(message: string, browser: BrowserKind): PushErrorInfo {
+  const lower = message.toLowerCase()
+  const name =
+    browser === 'edge'
+      ? 'Edge'
+      : browser === 'brave'
+        ? 'Brave'
+        : browser === 'chrome'
+          ? 'Chrome'
+          : 'Браузер'
+
+  if (lower.includes('push service not available') || lower.includes('push service error')) {
+    return {
+      title: `${name} не видит службу push`,
+      hint: 'Браузер не смог подключиться к своему сервису доставки уведомлений. Сайт, ключи и сервер в порядке — дело в настройках браузера или сети.',
+      steps:
+        browser === 'brave'
+          ? [
+              'Откройте brave://settings/privacy и включите «Use Google services for push messaging».',
+              'Полностью перезапустите Brave.',
+              'Разрешите уведомления для ratemusic.space в настройках сайта.',
+              'Если не помогло — попробуйте Chrome или Edge.',
+            ]
+          : CHROME_STEPS,
+    }
+  }
+
+  if (lower.includes('permission') || lower.includes('denied')) {
+    return {
+      title: 'Нет разрешения на уведомления',
+      hint: 'Браузер заблокировал уведомления для этого сайта.',
+      steps: [
+        'Откройте настройки уведомлений браузера для ratemusic.space.',
+        'Выберите «Разрешить».',
+        'Перезагрузите страницу и нажмите «Проверить снова».',
+      ],
+    }
+  }
+
+  if (lower.includes('insecure') || lower.includes('secure context')) {
+    return {
+      title: 'Нужен защищённый адрес',
+      hint: 'Push работают только на HTTPS. Откройте сайт по адресу https://ratemusic.space.',
+      steps: [],
+    }
+  }
+
+  return {
+    title: 'Не удалось включить уведомления',
+    hint: message || 'Браузер отклонил подписку. Проверьте настройки уведомлений и попробуйте снова.',
+    steps: CHROME_STEPS,
+  }
+}
+
 
 function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (value.length % 4)) % 4)
@@ -25,6 +95,9 @@ export function PushSettings() {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [errorKind, setErrorKind] = useState<'push' | 'prefs'>('push')
+  const [browser, setBrowser] = useState<BrowserKind>('other')
+  const [permission, setPermission] = useState('default')
 
   useEffect(() => {
     const ok =
@@ -33,6 +106,21 @@ export function PushSettings() {
       'PushManager' in window &&
       'Notification' in window
     setSupported(ok)
+    if (typeof Notification !== 'undefined') setPermission(Notification.permission)
+
+    const ua = navigator.userAgent
+    const nav = navigator as Navigator & { brave?: { isBrave?: () => Promise<boolean> } }
+    if (ua.includes('Edg/')) setBrowser('edge')
+    else if (ua.includes('Chrome/')) setBrowser('chrome')
+    else setBrowser('other')
+    if (nav.brave?.isBrave) {
+      void nav.brave
+        .isBrave()
+        .then((isBrave) => {
+          if (isBrave) setBrowser('brave')
+        })
+        .catch(() => undefined)
+    }
 
     fetch('/api/push/config')
       .then((response) => response.json())
@@ -61,13 +149,15 @@ export function PushSettings() {
   async function enable() {
     if (busy) return
     setBusy(true)
+    setErrorKind('push')
     setError('')
     setNotice('')
     try {
       if (!publicKey) throw new Error('Push не настроены на сервере')
-      let permission = Notification.permission
-      if (permission === 'default') permission = await Notification.requestPermission()
-      if (permission !== 'granted') {
+      let current = Notification.permission
+      if (current === 'default') current = await Notification.requestPermission()
+      setPermission(current)
+      if (current !== 'granted') {
         throw new Error('Разрешение не выдано. Включите уведомления в настройках браузера.')
       }
 
@@ -100,6 +190,7 @@ export function PushSettings() {
   async function disable() {
     if (busy) return
     setBusy(true)
+    setErrorKind('push')
     setError('')
     setNotice('')
     try {
@@ -125,6 +216,7 @@ export function PushSettings() {
   async function test() {
     if (busy) return
     setBusy(true)
+    setErrorKind('push')
     setError('')
     setNotice('')
     try {
@@ -142,6 +234,7 @@ export function PushSettings() {
   async function togglePref(key: keyof Prefs) {
     const next = { ...prefs, [key]: !prefs[key] }
     setPrefs(next)
+    setErrorKind('prefs')
     setError('')
     try {
       const response = await fetch('/api/push/prefs', {
@@ -154,6 +247,13 @@ export function PushSettings() {
       setPrefs(prefs)
       setError(err instanceof Error ? err.message : 'Не удалось сохранить настройку')
     }
+  }
+
+  const errorInfo = error && errorKind === 'push' ? describePushError(error, browser) : null
+
+  function retry() {
+    if (subscribed) void test()
+    else void enable()
   }
 
   return (
@@ -256,11 +356,71 @@ export function PushSettings() {
             На iPhone push работают после установки Rate на экран «Домой». Отключение уведомлений в
             конкретном чате по-прежнему действует.
           </p>
+
+          <details className="mt-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+            <summary className="cursor-pointer list-none text-[11px] font-medium text-muted transition hover:text-ink">
+              Не получается включить?
+            </summary>
+            <div className="mt-2 space-y-2 text-[11px] leading-relaxed text-muted">
+              <p>
+                <span className="font-semibold text-ink/80">Chrome:</span> разрешите уведомления в{' '}
+                <code className="rounded bg-white/10 px-1 py-0.5 text-[10.5px]">
+                  chrome://settings/content/notifications
+                </code>
+                , полностью перезапустите браузер и проверьте, что VPN, прокси или файрвол не
+                блокируют сервисы Google. В Edge push уже проверены и работают.
+              </p>
+              <p>
+                <span className="font-semibold text-ink/80">Edge:</span> разрешите уведомления
+                сайта и браузера в параметрах Windows.
+              </p>
+              <p>
+                <span className="font-semibold text-ink/80">Brave:</span> включите{' '}
+                <code className="rounded bg-white/10 px-1 py-0.5 text-[10.5px]">
+                  brave://settings/privacy
+                </code>{' '}
+                → «Use Google services for push messaging» и перезапустите браузер.
+              </p>
+              <p>
+                <span className="font-semibold text-ink/80">Инкогнито:</span> push там не работают,
+                нужен обычный режим.
+              </p>
+              <p className="border-t border-white/10 pt-2 text-[10.5px] text-dim">
+                Разрешение: {permission === 'granted' ? 'выдано' : permission === 'denied' ? 'запрещено' : 'не запрошено'}
+                {' · '}Service Worker: {supported ? 'поддерживается' : 'нет'}
+                {' · '}Подписка: {subscribed ? 'есть' : 'нет'}
+                {' · '}Сервер: {configured ? 'настроен' : 'нет'}
+              </p>
+            </div>
+          </details>
         </>
       )}
 
       {notice && <p className="mt-3 text-[11px] text-emerald-300">{notice}</p>}
-      {error && <p className="mt-2 text-[11px] text-amber-300">{error}</p>}
+
+      {errorInfo ? (
+        <div className="mt-3 rounded-lg border border-amber-300/25 bg-amber-500/10 px-3 py-2.5">
+          <p className="text-xs font-semibold text-amber-100">{errorInfo.title}</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-amber-100/80">{errorInfo.hint}</p>
+          {errorInfo.steps.length > 0 && (
+            <ol className="mt-2 list-decimal space-y-1 pl-4 text-[11px] leading-relaxed text-amber-100/80">
+              {errorInfo.steps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          )}
+          <button
+            type="button"
+            onClick={retry}
+            disabled={busy}
+            className="mt-2.5 rounded-full border border-amber-300/40 bg-amber-400/15 px-3 py-1.5 text-[11px] font-semibold text-amber-100 transition hover:bg-amber-400/25 disabled:opacity-60"
+          >
+            Проверить снова
+          </button>
+        </div>
+      ) : (
+        error && <p className="mt-2 text-[11px] text-amber-300">{error}</p>
+      )}
     </section>
   )
 }
