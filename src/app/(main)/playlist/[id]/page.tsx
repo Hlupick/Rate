@@ -105,6 +105,7 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
               description={playlist.description}
               avatar={playlist.avatar}
               cover={playlist.cover}
+              isPublic={playlist.isPublic}
             />
           )}
         </div>

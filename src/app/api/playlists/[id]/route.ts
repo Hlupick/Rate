@@ -13,11 +13,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     description?: string | null
     avatar?: string | null
     cover?: string | null
+    isPublic?: boolean
   }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Некорректный запрос' }, { status: 400 })
+  }
+
+  if (body.isPublic !== undefined && typeof body.isPublic !== 'boolean') {
+    return NextResponse.json({ error: 'Некорректная настройка доступа' }, { status: 400 })
   }
 
   for (const field of ['avatar', 'cover'] as const) {
@@ -38,6 +43,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           : String(body.description).trim().slice(0, 200) || null,
     avatar: body.avatar === undefined ? undefined : body.avatar,
     cover: body.cover === undefined ? undefined : body.cover,
+    isPublic: body.isPublic,
   })
   if (!updated) return NextResponse.json({ error: 'Нет доступа' }, { status: 403 })
 

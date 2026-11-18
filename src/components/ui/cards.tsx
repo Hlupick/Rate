@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Lock } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { StatusPill } from '@/components/profile/StatusPill'
 import { tracksWord } from '@/lib/format'
@@ -17,6 +18,14 @@ export function PlaylistCard({ playlist }: { playlist: Playlist }) {
         className="mb-3 aspect-square w-full rounded-md shadow-lg"
         textClassName="text-3xl"
       />
+      {!playlist.isPublic && (
+        <span
+          title="Приватный плейлист"
+          className="pointer-events-none absolute left-4 top-4 inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/15 bg-black/70 text-amber-200 backdrop-blur-md"
+        >
+          <Lock size={12} />
+        </span>
+      )}
       <div className="truncate text-[14px] font-semibold">{playlist.name}</div>
       <div className="mt-0.5 line-clamp-2 text-[12.5px] leading-snug text-muted">
         {playlist.description || `Плейлист · ${tracksWord(playlist.trackCount)}`}

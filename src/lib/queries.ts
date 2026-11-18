@@ -754,17 +754,18 @@ export function createPlaylist(
   ownerId: string,
   name: string,
   description: string | null,
-  meta: { source?: string | null; sourceUrl?: string | null } = {},
+  meta: { source?: string | null; sourceUrl?: string | null; isPublic?: boolean } = {},
 ): Playlist {
   const id = randomUUID()
   db.prepare(
     `INSERT INTO playlists (id, name, description, owner_id, is_public, source, source_url, created_at)
-     VALUES (?, ?, ?, ?, 1, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     name.trim(),
     description,
     ownerId,
+    meta.isPublic === false ? 0 : 1,
     meta.source ?? null,
     meta.sourceUrl ?? null,
     Date.now(),
@@ -780,15 +781,19 @@ export function updatePlaylist(
     description?: string | null
     avatar?: string | null
     cover?: string | null
+    isPublic?: boolean
   },
 ): Playlist | null {
   const playlist = db.prepare('SELECT * FROM playlists WHERE id = ?').get(id) as Row | undefined
   if (!playlist || playlist.owner_id !== ownerId) return null
-  db.prepare('UPDATE playlists SET name = ?, description = ?, avatar = ?, cover = ? WHERE id = ?').run(
+  db.prepare(
+    'UPDATE playlists SET name = ?, description = ?, avatar = ?, cover = ?, is_public = ? WHERE id = ?',
+  ).run(
     patch.name?.trim() || String(playlist.name),
     patch.description === undefined ? (playlist.description as string | null) : patch.description,
     patch.avatar === undefined ? playlist.avatar : patch.avatar,
     patch.cover === undefined ? playlist.cover : patch.cover,
+    patch.isPublic === undefined ? Number(playlist.is_public ?? 1) : patch.isPublic ? 1 : 0,
     id,
   )
   return getPlaylist(id)

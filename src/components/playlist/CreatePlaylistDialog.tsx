@@ -14,6 +14,7 @@ export function CreatePlaylistDialog({
   const router = useRouter()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [privatePlaylist, setPrivatePlaylist] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,12 +27,17 @@ export function CreatePlaylistDialog({
       const response = await fetch('/api/playlists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), description: description.trim() || null }),
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim() || null,
+          isPublic: !privatePlaylist,
+        }),
       })
       const data = (await response.json()) as { id?: string; error?: string }
       if (!response.ok || !data.id) throw new Error(data.error ?? 'Не удалось создать плейлист')
       setName('')
       setDescription('')
+      setPrivatePlaylist(false)
       onClose()
       router.push(`/playlist/${data.id}`)
       router.refresh()
@@ -77,6 +83,31 @@ export function CreatePlaylistDialog({
           />
         </div>
         {error && <p className="text-sm text-red-400">{error}</p>}
+        <div className="flex items-start gap-3 rounded-md border border-line bg-panel-2 px-3 py-2.5">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={privatePlaylist}
+            onClick={() => setPrivatePlaylist((value) => !value)}
+            className={`mt-0.5 flex h-5 w-9 shrink-0 items-center rounded-full border transition ${
+              privatePlaylist
+                ? 'border-amber-300/40 bg-amber-400/80'
+                : 'border-white/15 bg-black/40'
+            }`}
+          >
+            <span
+              className={`h-3.5 w-3.5 rounded-full bg-white shadow transition ${
+                privatePlaylist ? 'translate-x-[18px]' : 'translate-x-[3px]'
+              }`}
+            />
+          </button>
+          <div>
+            <div className="text-sm font-medium text-ink">Приватный плейлист</div>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+              Виден только вам. Добавлять треки и слушать можно как обычно.
+            </p>
+          </div>
+        </div>
         <div className="flex justify-end gap-2 pt-1">
           <button
             type="button"
