@@ -3,7 +3,7 @@
 Локальное музыкальное веб-приложение для прослушивания музыки — в тёмно-серых тонах. Музыку в
 библиотеку добавляют сами слушатели: загрузил файл — трек сразу виден всем.
 
-![monah](https://img.shields.io/badge/next.js-15-black) ![react](https://img.shields.io/badge/react-19-black) ![sqlite](https://img.shields.io/badge/sqlite-node%3Asqlite-black)
+![Rate](https://img.shields.io/badge/next.js-15-black) ![react](https://img.shields.io/badge/react-19-black) ![sqlite](https://img.shields.io/badge/sqlite-node%3Asqlite-black)
 
 ## Что внутри
 
