@@ -56,6 +56,9 @@ export default async function DownloadPage() {
 
         {release ? (
           <>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-dim">
+              Android
+            </div>
             <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] text-dim">
               <span className="rounded-full border border-line px-2.5 py-1">
                 версия {release.versionName}
@@ -171,18 +174,18 @@ export default async function DownloadPage() {
         {[
           {
             icon: Smartphone,
-            title: 'Как установить',
+            title: 'Android: установка',
             text: 'Скачайте APK, откройте файл и разрешите установку из этого источника. Обычно достаточно одного касания в диалоге Android.',
           },
           {
             icon: ShieldCheck,
-            title: 'Подпись не меняется',
+            title: 'Android: подпись',
             text: 'Все версии подписаны одним ключом, поэтому новая сборка ставится поверх старой и ваши данные остаются на месте.',
           },
           {
             icon: RefreshCw,
             title: 'Обновления',
-            text: 'Магазина нет, поэтому обновляться нужно вручную: скачать свежий APK на этой странице и установить поверх.',
+            text: 'Сайт обновляется сам: новые ободки, статусы и серия появляются сразу. Пересобирать APK или Windows-приложение нужно только при изменении самой оболочки.',
           },
         ].map((item) => (
           <div key={item.title} className="rounded-xl bg-panel px-4 py-4">
@@ -193,7 +196,10 @@ export default async function DownloadPage() {
         ))}
       </div>
 
-      <ol className="mt-6 space-y-2 rounded-xl border border-line px-5 py-4 text-xs leading-relaxed text-muted">
+      <div className="mt-6 text-[11px] font-semibold uppercase tracking-[0.16em] text-dim">
+        Android: пошагово
+      </div>
+      <ol className="mt-2 space-y-2 rounded-xl border border-line px-5 py-4 text-xs leading-relaxed text-muted">
         <li>1. Нажмите «Скачать APK» и дождитесь загрузки файла.</li>
         <li>2. Откройте загрузку — Android спросит разрешение на установку из браузера.</li>
         <li>3. Запустите Rate и войдите тем же аккаунтом, что и на сайте.</li>
