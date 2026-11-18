@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
 
-export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
+export function AuthForm({
+  mode,
+  canResetPassword = true,
+}: {
+  mode: 'login' | 'register'
+  canResetPassword?: boolean
+}) {
   const router = useRouter()
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
@@ -233,7 +239,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
         </div>
       )}
 
-      {mode === 'login' && (
+      {mode === 'login' && canResetPassword && (
         <Link
           href="/forgot"
           className="mt-3 block text-center text-sm text-muted transition hover:text-ink"
