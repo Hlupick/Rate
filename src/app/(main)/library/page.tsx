@@ -65,7 +65,15 @@ export default async function LibraryPage({
             загрузок: {stats.uploads}
           </p>
         </div>
-        <CreatePlaylistButton />
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/import"
+            className="rounded-full border border-line px-4 py-2 text-sm font-medium text-muted transition hover:border-white/30 hover:text-ink"
+          >
+            Импорт
+          </Link>
+          <CreatePlaylistButton />
+        </div>
       </div>
 
       <div className="mt-6 flex gap-1 border-b border-white/5">
