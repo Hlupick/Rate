@@ -63,7 +63,7 @@ export default async function ProfilePage({
             <h1 className="mt-2 flex flex-wrap items-center justify-center gap-2 break-words text-3xl font-extrabold tracking-tight md:justify-start md:text-4xl xl:text-5xl">
               <span>{profile.displayName}</span>
               <StreakChip username={profile.username} variant="glass" />
-              {profile.status && <StatusPill text={profile.status} />}
+              {profile.status && <StatusPill text={profile.status} color={profile.statusColor} />}
             </h1>
             <p className="mt-2 text-sm text-muted">
               @{profile.username} · загрузок: {uploads.length} · прослушиваний:{' '}
@@ -89,6 +89,7 @@ export default async function ProfilePage({
                   displayName={profile.displayName}
                   bio={profile.bio}
                   status={profile.status}
+                  statusColor={profile.statusColor}
                   avatar={profile.avatar}
                   cover={profile.cover}
                 />

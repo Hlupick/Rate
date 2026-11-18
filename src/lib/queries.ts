@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { db } from './db'
+import { clampStatusColor } from './status'
 import type {
   AdminUserRow,
   ArtistSummary,
@@ -21,6 +22,7 @@ function mapUser(row: Row): UserRecord {
     displayName: String(row.display_name),
     bio: row.bio ? String(row.bio) : null,
     status: row.status ? String(row.status) : null,
+    statusColor: clampStatusColor(row.status_color ? String(row.status_color) : null),
     avatar: row.avatar ? String(row.avatar) : null,
     cover: row.cover ? String(row.cover) : null,
     createdAt: Number(row.created_at),
@@ -86,6 +88,13 @@ export function getUserByLogin(login: string): UserRecord | null {
   return row ? mapUser(row) : null
 }
 
+export function getUserByEmail(email: string): UserRecord | null {
+  const row = db
+    .prepare('SELECT * FROM users WHERE LOWER(email) = ?')
+    .get(email.trim().toLowerCase()) as Row | undefined
+  return row ? mapUser(row) : null
+}
+
 export function getUserByUsername(username: string): UserPublic | null {
   const row = db
     .prepare('SELECT * FROM users WHERE LOWER(username) = ?')
@@ -138,6 +147,7 @@ export function updateUserProfile(
     displayName?: string
     bio?: string | null
     status?: string | null
+    statusColor?: string | null
     avatar?: string | null
     cover?: string | null
   },
@@ -145,11 +155,12 @@ export function updateUserProfile(
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as Row | undefined
   if (!user) return null
   db.prepare(
-    'UPDATE users SET display_name = ?, bio = ?, status = ?, avatar = ?, cover = ? WHERE id = ?',
+    'UPDATE users SET display_name = ?, bio = ?, status = ?, status_color = ?, avatar = ?, cover = ? WHERE id = ?',
   ).run(
     patch.displayName?.trim() || String(user.display_name),
     patch.bio === undefined ? user.bio : patch.bio,
     patch.status === undefined ? user.status : patch.status,
+    patch.statusColor === undefined ? user.status_color : patch.statusColor,
     patch.avatar === undefined ? user.avatar : patch.avatar,
     patch.cover === undefined ? user.cover : patch.cover,
     id,

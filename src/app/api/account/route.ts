@@ -15,7 +15,7 @@ import {
   userTrackFileNames,
 } from '@/lib/queries'
 import { clientIp, rateLimit } from '@/lib/rate-limit'
-import { clampStatus } from '@/lib/status'
+import { clampStatus, clampStatusColor } from '@/lib/status'
 
 export const runtime = 'nodejs'
 
@@ -27,6 +27,7 @@ export async function PATCH(request: Request) {
     displayName?: string
     bio?: string | null
     status?: string | null
+    statusColor?: string | null
     avatar?: string | null
     cover?: string | null
   }
@@ -58,6 +59,10 @@ export async function PATCH(request: Request) {
         : body.status === null
           ? null
           : clampStatus(String(body.status)) || null,
+    statusColor:
+      body.statusColor === undefined || body.statusColor === null
+        ? undefined
+        : clampStatusColor(body.statusColor),
     avatar: body.avatar === undefined ? undefined : body.avatar,
     cover: body.cover === undefined ? undefined : body.cover,
   }

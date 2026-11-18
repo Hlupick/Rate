@@ -1,3 +1,5 @@
+import type { StatusColor } from './status'
+
 export type UserPublic = {
   id: string
   email: string
@@ -5,6 +7,7 @@ export type UserPublic = {
   displayName: string
   bio: string | null
   status: string | null
+  statusColor: StatusColor
   avatar: string | null
   cover: string | null
   createdAt: number

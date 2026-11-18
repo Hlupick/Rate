@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   bio TEXT,
   status TEXT,
+  status_color TEXT,
   avatar TEXT,
   cover TEXT,
   can_upload INTEGER NOT NULL DEFAULT 0,
@@ -112,6 +113,30 @@ CREATE TABLE IF NOT EXISTS reports (
   created_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS email_verifications (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  username TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  ip TEXT,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS password_resets (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  ip TEXT,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_tracks_artist ON tracks(artist);
 CREATE INDEX IF NOT EXISTS idx_tracks_created ON tracks(created_at);
 CREATE INDEX IF NOT EXISTS idx_tracks_play_count ON tracks(play_count);
@@ -124,6 +149,8 @@ CREATE INDEX IF NOT EXISTS idx_playlists_owner ON playlists(owner_id);
 CREATE INDEX IF NOT EXISTS idx_likes_track ON likes(track_id);
 CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_invites_code ON invites(code);
+CREATE INDEX IF NOT EXISTS idx_email_verifications_email ON email_verifications(email, created_at);
+CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id, created_at);
 `
 
 function createDb() {
@@ -143,6 +170,7 @@ function createDb() {
     'ALTER TABLE users ADD COLUMN avatar TEXT',
     'ALTER TABLE users ADD COLUMN cover TEXT',
     'ALTER TABLE users ADD COLUMN status TEXT',
+    'ALTER TABLE users ADD COLUMN status_color TEXT',
     'ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
     // Playlist import was removed; drop the placeholder table it left behind.
     'DROP TABLE IF EXISTS playlist_drafts',
@@ -154,6 +182,9 @@ function createDb() {
       /* column already exists */
     }
   }
+  // Codes are short-lived; drop leftovers so the tables stay small.
+  db.exec('DELETE FROM email_verifications WHERE expires_at < ' + Date.now())
+  db.exec('DELETE FROM password_resets WHERE expires_at < ' + Date.now())
   return db
 }
 

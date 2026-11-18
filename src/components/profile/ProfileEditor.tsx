@@ -6,18 +6,21 @@ import { Pencil } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { ImagePicker } from '@/components/ui/ImagePicker'
 import { StatusPill } from '@/components/profile/StatusPill'
-import { STATUS_MAX_LENGTH, clampStatus, countStatusChars, limitStatusChars } from '@/lib/status'
+import { cn } from '@/lib/utils'
+import { STATUS_COLORS, STATUS_MAX_LENGTH, clampStatus, countStatusChars, limitStatusChars, statusColorTheme } from '@/lib/status'
 
 export function ProfileEditor({
   displayName,
   bio,
   status,
+  statusColor,
   avatar,
   cover,
 }: {
   displayName: string
   bio: string | null
   status: string | null
+  statusColor: string
   avatar: string | null
   cover: string | null
 }) {
@@ -26,6 +29,7 @@ export function ProfileEditor({
   const [name, setName] = useState(displayName)
   const [about, setAbout] = useState(bio ?? '')
   const [label, setLabel] = useState(status ?? '')
+  const [tint, setTint] = useState(statusColor)
   const [newAvatar, setNewAvatar] = useState(avatar)
   const [newCover, setNewCover] = useState(cover)
   const [busy, setBusy] = useState(false)
@@ -43,6 +47,7 @@ export function ProfileEditor({
           displayName: name.trim(),
           bio: about.trim() || null,
           status: clampStatus(label) || null,
+          statusColor: tint,
           avatar: newAvatar,
           cover: newCover,
         }),
@@ -119,10 +124,34 @@ export function ProfileEditor({
               <p id="profile-status-hint" className="text-[11px] text-muted">
                 Короткая подпись рядом с ником в профиле. Оставьте пустым, чтобы скрыть.
               </p>
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                <span className="text-[11px] text-muted">Цвет:</span>
+                {STATUS_COLORS.map((color) => (
+                  <button
+                    key={color.key}
+                    type="button"
+                    onClick={() => setTint(color.key)}
+                    title={color.label}
+                    aria-label={color.label}
+                    aria-pressed={tint === color.key}
+                    className={cn(
+                      'h-7 w-7 rounded-full border border-white/20 transition',
+                      statusColorTheme(color.key).dot,
+                      tint === color.key
+                        ? 'ring-2 ring-white/80 ring-offset-2 ring-offset-black'
+                        : 'opacity-80 hover:opacity-100',
+                    )}
+                  />
+                ))}
+              </div>
               <div className="flex items-center gap-2 pt-1">
                 <span className="text-[11px] text-muted">Так появится в профиле:</span>
                 {label.trim() ? (
-                  <StatusPill text={label.trim()} className="py-0.5 text-[12px]" />
+                  <StatusPill
+                    text={label.trim()}
+                    color={tint}
+                    className="py-0.5 text-[12px]"
+                  />
                 ) : (
                   <span className="text-[11px] text-muted">— скрыто</span>
                 )}

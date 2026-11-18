@@ -22,7 +22,7 @@ const csp = [
 const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
-  serverExternalPackages: ['music-metadata'],
+  serverExternalPackages: ['music-metadata', 'nodemailer'],
   devIndicators: false,
   async headers() {
     return [
