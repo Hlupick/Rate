@@ -70,7 +70,7 @@ export function Bar({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       className={cn(
-        'group relative flex h-4 w-full items-center touch-none select-none',
+        'group relative flex h-10 w-full items-center touch-none select-none md:h-4',
         disabled && 'cursor-default',
         !disabled && 'cursor-pointer',
         className,

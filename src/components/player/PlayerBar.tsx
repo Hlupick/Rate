@@ -41,7 +41,7 @@ function IconButton({
       aria-label={label}
       title={label}
       className={cn(
-        'relative flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:text-ink',
+        'relative flex h-11 w-11 items-center justify-center rounded-full text-muted transition hover:text-ink md:h-9 md:w-9',
         active && 'text-accent',
         className,
       )}
@@ -82,8 +82,18 @@ export function PlayerBar() {
     <>
       <QueuePanel />
       <div className="relative flex h-[74px] shrink-0 items-center gap-2 px-2 md:h-[92px] md:gap-4 md:px-4">
-        <div className="absolute inset-x-2 top-0 h-[2px] overflow-hidden rounded-full bg-white/10 md:hidden">
-          <div className="h-full bg-white" style={{ width: `${ratio * 100}%` }} />
+        <div
+          className="absolute inset-x-2 top-0 flex h-5 items-start md:hidden"
+          onPointerDown={(event) => {
+            if (!current || total <= 0) return
+            const rect = event.currentTarget.getBoundingClientRect()
+            const value = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width))
+            seek(value * total)
+          }}
+        >
+          <div className="mt-1 h-[2px] w-full overflow-hidden rounded-full bg-white/10">
+            <div className="h-full bg-white" style={{ width: `${ratio * 100}%` }} />
+          </div>
         </div>
 
         {/* Now playing */}
@@ -147,7 +157,7 @@ export function PlayerBar() {
             <button
               onClick={toggle}
               aria-label={isPlaying ? 'Пауза' : 'Играть'}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-black transition hover:scale-105 active:scale-95 disabled:opacity-40 md:h-10 md:w-10"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-black transition hover:scale-105 active:scale-95 disabled:opacity-40 md:h-10 md:w-10"
               disabled={!current}
             >
               {isPlaying ? (

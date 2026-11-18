@@ -12,7 +12,7 @@ export function QueuePanel() {
   if (!queueOpen) return null
 
   return (
-    <div className="fixed right-2 bottom-[82px] top-2 z-50 flex w-[min(380px,calc(100vw-16px))] flex-col overflow-hidden rounded-lg border border-line bg-panel shadow-2xl md:bottom-[100px]">
+    <div className="fixed bottom-[136px] right-2 top-[calc(0.5rem+env(safe-area-inset-top))] z-50 flex w-[min(380px,calc(100vw-16px))] flex-col overflow-hidden rounded-lg border border-line bg-panel shadow-2xl md:bottom-[100px]">
       <div className="flex items-center justify-between border-b border-line px-4 py-3">
         <div>
           <div className="text-sm font-semibold">Очередь</div>
@@ -80,7 +80,7 @@ export function QueuePanel() {
                     {!active && (
                       <button
                         onClick={() => removeFromQueue(track.id)}
-                        className="rounded p-1 text-dim opacity-0 transition hover:text-ink group-hover:opacity-100"
+                        className="rounded p-2 text-dim transition hover:text-ink"
                         aria-label="Убрать из очереди"
                       >
                         <X size={14} />

@@ -2,26 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Home, Library, LogOut, Search, Shield, Upload, User } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ChevronLeft, ChevronRight, LogOut, Shield, Upload, User } from 'lucide-react'
 import { initials } from '@/lib/format'
 import { Logo } from '@/components/ui/Logo'
-import { cn } from '@/lib/utils'
 
 type TopBarProps = {
   user: { displayName: string; username: string; isAdmin?: boolean } | null
 }
 
-const MOBILE_NAV = [
-  { href: '/', label: 'Главная', icon: Home },
-  { href: '/search', label: 'Поиск', icon: Search },
-  { href: '/library', label: 'Медиатека', icon: Library },
-  { href: '/upload', label: 'Загрузить', icon: Upload },
-]
-
 export function TopBar({ user }: TopBarProps) {
   const router = useRouter()
-  const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
 
@@ -42,7 +33,7 @@ export function TopBar({ user }: TopBarProps) {
   }
 
   return (
-    <header className="sticky top-0 z-30 bg-panel/85 px-4 pt-3 pb-2 backdrop-blur-md md:px-6">
+    <header className="sticky top-0 z-30 bg-panel/85 px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur-md md:px-6">
       <div className="flex items-center gap-3">
         <Link href="/" className="md:hidden">
           <Logo size={22} />
@@ -51,14 +42,14 @@ export function TopBar({ user }: TopBarProps) {
           <button
             onClick={() => router.back()}
             aria-label="Назад"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-muted transition hover:text-ink"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-muted transition hover:text-ink"
           >
             <ChevronLeft size={18} />
           </button>
           <button
             onClick={() => router.forward()}
             aria-label="Вперёд"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-muted transition hover:text-ink"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-muted transition hover:text-ink"
           >
             <ChevronRight size={18} />
           </button>
@@ -77,7 +68,7 @@ export function TopBar({ user }: TopBarProps) {
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setMenuOpen((v) => !v)}
-                  className="flex h-8 items-center gap-2 rounded-full bg-black/50 p-1 pr-3 text-sm transition hover:bg-black/70"
+                  className="flex h-10 items-center gap-2 rounded-full bg-black/50 p-1 pr-3 text-sm transition hover:bg-black/70"
                   aria-label="Меню профиля"
                 >
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[#4a4a4a] to-[#232323] text-[10px] font-bold">
@@ -146,25 +137,6 @@ export function TopBar({ user }: TopBarProps) {
           )}
         </div>
       </div>
-
-      <nav className="mt-2 flex gap-1.5 md:hidden">
-        {MOBILE_NAV.map((item) => {
-          const active = pathname === item.href
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex flex-1 items-center justify-center gap-1.5 rounded-full px-2 py-1.5 text-[11px] font-medium transition',
-                active ? 'bg-card text-ink' : 'bg-black/30 text-muted',
-              )}
-            >
-              <item.icon size={14} />
-              {item.label}
-            </Link>
-          )
-        })}
-      </nav>
     </header>
   )
 }

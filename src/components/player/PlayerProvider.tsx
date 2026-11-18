@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { coverUrl } from '@/lib/format'
 
 export type PlayerTrack = {
   id: string
@@ -60,6 +61,25 @@ export function usePlayer(): PlayerApi {
 
 const streamUrl = (id: string) => `/api/stream/${id}`
 const STORAGE_KEY = 'monah:player'
+
+type MediaActionDetails = { seekTime?: number; seekOffset?: number }
+type MediaSessionLike = {
+  metadata: unknown | null
+  playbackState: 'none' | 'paused' | 'playing'
+  setActionHandler: (
+    action: string,
+    handler: ((details: MediaActionDetails) => void) | null,
+  ) => void
+  setPositionState?: (state: {
+    duration: number
+    position: number
+    playbackRate: number
+  }) => void
+}
+type ScreenLock = {
+  release: () => Promise<void>
+  addEventListener: (type: string, listener: () => void) => void
+}
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -311,10 +331,30 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const progressRef = useRef(0)
   progressRef.current = progress
 
+  const lastPositionRef = useRef(0)
+  const publishPosition = (audio: HTMLAudioElement, force = false) => {
+    const session = (navigator as unknown as { mediaSession?: MediaSessionLike }).mediaSession
+    if (!session?.setPositionState) return
+    if (!Number.isFinite(audio.duration) || audio.duration <= 0) return
+    const now = Date.now()
+    if (!force && now - lastPositionRef.current < 1000) return
+    lastPositionRef.current = now
+    try {
+      session.setPositionState({
+        duration: audio.duration,
+        position: Math.min(audio.currentTime, audio.duration),
+        playbackRate: audio.playbackRate || 1,
+      })
+    } catch {
+      /* some browsers reject position updates for short files */
+    }
+  }
+
   const handleTimeUpdate = (event: React.SyntheticEvent<HTMLAudioElement>) => {
     const audio = event.currentTarget
     setProgress(audio.currentTime)
     if (Number.isFinite(audio.duration) && audio.duration > 0) setDuration(audio.duration)
+    publishPosition(audio)
     const track = currentRef.current
     if (track && !playedRef.current.has(track.id)) {
       const threshold = Math.min(30, (audio.duration || track.duration) * 0.5)
@@ -352,6 +392,129 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [next, prev, seek, toggle, toggleMute])
+
+  /* -------------------------- Android media keys -------------------------- */
+
+  useEffect(() => {
+    const session = (navigator as unknown as { mediaSession?: MediaSessionLike }).mediaSession
+    if (!session) return
+    const MediaMetadataCtor = (
+      window as unknown as { MediaMetadata?: new (data: Record<string, unknown>) => unknown }
+    ).MediaMetadata
+    if (!MediaMetadataCtor) return
+
+    if (!current) {
+      session.metadata = null
+      session.playbackState = 'none'
+      return
+    }
+
+    const ext = current.cover?.split('.').pop()?.toLowerCase()
+    const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg'
+    const artwork = current.cover
+      ? [
+          {
+            src: new URL(coverUrl(current.cover)!, window.location.origin).href,
+            sizes: '512x512',
+            type,
+          },
+        ]
+      : []
+
+    session.metadata = new MediaMetadataCtor({
+      title: current.title,
+      artist: current.artist,
+      album: current.album ?? '',
+      artwork,
+    })
+    session.playbackState = isPlaying ? 'playing' : 'paused'
+  }, [current, isPlaying])
+
+  useEffect(() => {
+    const session = (navigator as unknown as { mediaSession?: MediaSessionLike }).mediaSession
+    if (!session) return
+
+    const handlers: [string, (details: MediaActionDetails) => void][] = [
+      [
+        'play',
+        () => {
+          if (!currentRef.current) return
+          void audioRef.current?.play().catch(() => undefined)
+        },
+      ],
+      ['pause', () => audioRef.current?.pause()],
+      ['stop', () => {
+        audioRef.current?.pause()
+        setProgress(0)
+      }],
+      ['previoustrack', () => prev()],
+      ['nexttrack', () => next()],
+      ['seekto', (details) => seek(details.seekTime ?? 0)],
+      ['seekbackward', (details) => seek(progressRef.current - (details.seekOffset ?? 10))],
+      ['seekforward', (details) => seek(progressRef.current + (details.seekOffset ?? 10))],
+    ]
+
+    for (const [action, handler] of handlers) {
+      try {
+        session.setActionHandler(action, handler)
+      } catch {
+        /* action is not supported by this browser */
+      }
+    }
+    return () => {
+      for (const [action] of handlers) {
+        try {
+          session.setActionHandler(action, null)
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  }, [next, prev, seek])
+
+  /* Keep the screen on while music plays; re-acquire after returning to the app. */
+  useEffect(() => {
+    if (!isPlaying) return
+    const wakeLock = (
+      navigator as Navigator & {
+        wakeLock?: { request: (type: 'screen') => Promise<ScreenLock> }
+      }
+    ).wakeLock
+    if (!wakeLock) return
+
+    let cancelled = false
+    let lock: ScreenLock | null = null
+
+    const acquire = async () => {
+      if (document.visibilityState !== 'visible') return
+      try {
+        const nextLock = await wakeLock.request('screen')
+        if (cancelled) {
+          void nextLock.release().catch(() => undefined)
+          return
+        }
+        lock = nextLock
+        lock.addEventListener('release', () => {
+          lock = null
+        })
+      } catch {
+        /* battery saver or browser policy denied the lock */
+      }
+    }
+
+    void acquire()
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void acquire()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', onVisibility)
+      if (lock) void lock.release().catch(() => undefined)
+      lock = null
+    }
+  }, [isPlaying])
 
   const value = useMemo<PlayerApi>(
     () => ({
@@ -420,6 +583,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         onLoadedMetadata={(event) => {
           const audio = event.currentTarget
           if (Number.isFinite(audio.duration) && audio.duration > 0) setDuration(audio.duration)
+          publishPosition(audio, true)
         }}
         className="hidden"
       />

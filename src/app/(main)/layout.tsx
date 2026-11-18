@@ -3,6 +3,7 @@ import { getPlaylistsByOwner } from '@/lib/queries'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { TopBar } from '@/components/layout/TopBar'
 import { PlayerBar } from '@/components/player/PlayerBar'
+import { BottomNav } from '@/components/layout/BottomNav'
 import Link from 'next/link'
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
@@ -39,6 +40,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         </main>
       </div>
       <PlayerBar />
+      <BottomNav />
     </div>
   )
 }

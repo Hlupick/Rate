@@ -64,6 +64,13 @@ button {
   cursor: pointer;
 }
 
+/* Touch-friendly defaults for Android / PWA. */
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
 .input {
   width: 100%;
   border-radius: 0.375rem;
