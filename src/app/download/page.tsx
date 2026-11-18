@@ -65,14 +65,31 @@ export default async function DownloadPage() {
                 </span>
               )}
             </div>
-            <a
-              href="/api/app/android"
-              download
-              className="mt-2 inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-sm font-bold text-black transition hover:bg-white"
-            >
-              <Download size={18} />
-              Скачать APK
-            </a>
+            <div className="mt-2 flex flex-col items-center gap-4 md:flex-row">
+              <a
+                href="/api/app/android"
+                download
+                className="inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-sm font-bold text-black transition hover:bg-white"
+              >
+                <Download size={18} />
+                Скачать APK
+              </a>
+              <div className="hidden items-center gap-3 rounded-xl border border-line bg-panel px-3 py-2.5 text-left md:flex">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/download-qr.svg"
+                  alt="QR-код на эту страницу"
+                  width={72}
+                  height={72}
+                  className="h-[72px] w-[72px] rounded bg-white p-1"
+                />
+                <span className="text-[11px] leading-snug text-muted">
+                  Наведите камеру
+                  <br />
+                  телефона
+                </span>
+              </div>
+            </div>
           </>
         ) : (
           <div className="mt-2 rounded-full border border-line px-5 py-3 text-xs text-muted">
