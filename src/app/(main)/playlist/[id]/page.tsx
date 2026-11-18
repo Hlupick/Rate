@@ -75,6 +75,19 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
               {drafts.length > 0 && <span>· {drafts.length} не загружено</span>}
               {tracks.length > 0 && <span>· {formatTotalDuration(totalDuration)}</span>}
               <span>· создан {timeAgo(playlist.createdAt)}</span>
+              {playlist.sourceUrl && (
+                <span>
+                  · источник:{' '}
+                  <a
+                    href={playlist.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-ink underline underline-offset-2"
+                  >
+                    {playlist.source === 'spotify' ? 'Spotify' : 'Deezer'}
+                  </a>
+                </span>
+              )}
             </div>
           </div>
         </div>

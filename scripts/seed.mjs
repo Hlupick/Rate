@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS tracks (
 );
 CREATE TABLE IF NOT EXISTS playlists (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  is_public INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL
+  is_public INTEGER NOT NULL DEFAULT 1, source_url TEXT, source TEXT, cover TEXT, created_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS playlist_tracks (
   playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
@@ -88,6 +88,9 @@ for (const sql of [
   'ALTER TABLE users ADD COLUMN can_upload INTEGER NOT NULL DEFAULT 0',
   'ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0',
   'ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0',
+  'ALTER TABLE playlists ADD COLUMN source_url TEXT',
+  'ALTER TABLE playlists ADD COLUMN source TEXT',
+  'ALTER TABLE playlists ADD COLUMN cover TEXT',
 ]) {
   try {
     db.exec(sql)

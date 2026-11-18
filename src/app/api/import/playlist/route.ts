@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { addPlaylistDraft, addTrackToPlaylist, createPlaylist, listTracks } from '@/lib/queries'
+import {
+  addPlaylistDraft,
+  addTrackToPlaylist,
+  createPlaylist,
+  findPlaylistBySource,
+  listTracks,
+} from '@/lib/queries'
 import { createMatcher } from '@/lib/matching'
+import { downloadCover, isAllowedCoverUrl } from '@/lib/storage'
 import { clientIp, rateLimit } from '@/lib/rate-limit'
 
 type Row = { title: string; artist: string }
+const PROVIDERS = new Set(['spotify', 'deezer'])
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
@@ -18,7 +26,14 @@ export async function POST(request: Request) {
     )
   }
 
-  let body: { name?: string; description?: string; rows?: unknown }
+  let body: {
+    name?: string
+    description?: string
+    rows?: unknown
+    sourceUrl?: string
+    source?: string
+    coverUrl?: string
+  }
   try {
     body = await request.json()
   } catch {
@@ -27,9 +42,26 @@ export async function POST(request: Request) {
 
   const name = (body.name ?? '').trim().slice(0, 80)
   const description = (body.description ?? '').trim().slice(0, 200) || null
+  const sourceUrl = (body.sourceUrl ?? '').trim().slice(0, 500) || null
+  const source =
+    body.source && PROVIDERS.has(body.source) ? (body.source as 'spotify' | 'deezer') : null
+  const coverUrl = (body.coverUrl ?? '').trim().slice(0, 1000) || null
+
   if (!name) return NextResponse.json({ error: 'Введите название плейлиста' }, { status: 400 })
   if (!Array.isArray(body.rows)) {
     return NextResponse.json({ error: 'Нет списка треков' }, { status: 400 })
+  }
+  if (sourceUrl && !source) {
+    return NextResponse.json({ error: 'Неизвестный источник плейлиста' }, { status: 400 })
+  }
+  if (sourceUrl) {
+    const existing = findPlaylistBySource(user.id, sourceUrl)
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Этот плейлист уже импортирован', playlistId: existing.id },
+        { status: 409 },
+      )
+    }
   }
 
   const rows: Row[] = (body.rows as unknown[])
@@ -71,10 +103,13 @@ export async function POST(request: Request) {
     }
   }
 
+  const cover = coverUrl && isAllowedCoverUrl(coverUrl) ? await downloadCover(coverUrl) : null
+
   const playlist = createPlaylist(
     user.id,
     name,
     description ?? `Импорт: ${matchedIds.length} из ${rows.length} треков.`,
+    { sourceUrl, source, cover },
   )
   for (const trackId of matchedIds) {
     addTrackToPlaylist(playlist.id, trackId, user.id)

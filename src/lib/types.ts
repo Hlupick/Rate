@@ -39,6 +39,8 @@ export type Playlist = {
   trackCount: number
   missingCount: number
   cover: string | null
+  sourceUrl: string | null
+  source: string | null
   ownerName: string
   ownerUsername: string
 }

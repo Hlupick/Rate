@@ -37,15 +37,17 @@ export default async function ImportPage() {
           <ListPlus size={26} /> Импорт плейлиста
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          Перенесите плейлист по списку треков: monah найдёт совпадения в библиотеке и создаст
-          плейлист в том же порядке. Музыку из Spotify мы не копируем — только названия и
-          исполнителей; недостающие треки нужно загрузить файлами, на которые у вас есть права.
+          Вставьте ссылку на публичный плейлист <strong className="text-ink">Spotify</strong> или{' '}
+          <strong className="text-ink">Deezer</strong> — monah перенесёт названия и исполнителей и
+          создаст плейлист. Совпавшие с библиотекой треки станут играбельными, остальные
+          сохранятся как «не загружено». Аудио из сервисов не скачивается.
         </p>
       </div>
 
       <div className="mt-5 rounded-lg border border-line bg-card p-4 text-sm leading-relaxed text-muted">
-        <div className="mb-2 font-semibold text-ink">Как выгрузить плейлист из Spotify</div>
+        <div className="mb-2 font-semibold text-ink">Если ссылка не подходит</div>
         <ol className="list-decimal space-y-1.5 pl-5">
+          <li>Приватные плейлисты Spotify по ссылке не читаются.</li>
           <li>
             Откройте{' '}
             <a
@@ -55,14 +57,13 @@ export default async function ImportPage() {
               className="text-ink underline underline-offset-2"
             >
               exportify.net
-            </a>{' '}
-            и войдите через свой Spotify.
+            </a>
+            , войдите через Spotify и нажмите Export.
           </li>
-          <li>Выберите плейлист и нажмите Export — скачается CSV-файл.</li>
-          <li>Загрузите этот CSV ниже, укажите название и запустите импорт.</li>
+          <li>Загрузите полученный CSV во вкладке «CSV из Exportify».</li>
         </ol>
         <p className="mt-2 text-xs text-dim">
-          Можно и без Exportify: вставьте список строк вручную во вкладке «Список строк».
+          Есть и третий вариант — вставить список строк вручную во вкладке «Список строк».
         </p>
       </div>
 

@@ -52,6 +52,9 @@ CREATE TABLE IF NOT EXISTS playlists (
   description TEXT,
   owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   is_public INTEGER NOT NULL DEFAULT 1,
+  source_url TEXT,
+  source TEXT,
+  cover TEXT,
   created_at INTEGER NOT NULL
 );
 
@@ -126,6 +129,9 @@ function createDb() {
     'ALTER TABLE users ADD COLUMN can_upload INTEGER NOT NULL DEFAULT 0',
     'ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0',
     'ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE playlists ADD COLUMN source_url TEXT',
+    'ALTER TABLE playlists ADD COLUMN source TEXT',
+    'ALTER TABLE playlists ADD COLUMN cover TEXT',
   ]
   for (const sql of migrations) {
     try {
