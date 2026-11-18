@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Flag, ListMusic, ListPlus, Pencil, Plus, Trash2, CirclePlus, ArrowDown, ArrowUp } from 'lucide-react'
+import { Flag, ListMusic, ListPlus, Pencil, Plus, Share2, Trash2, CirclePlus, ArrowDown, ArrowUp } from 'lucide-react'
 import { Menu, MenuItem } from '@/components/ui/Menu'
 import { Modal } from '@/components/ui/Modal'
 import { usePlayer, type PlayerTrack } from '@/components/player/PlayerProvider'
 import { Avatar } from '@/components/ui/Avatar'
 import { TrackAvatar } from '@/components/track/TrackAvatar'
+import { ShareDialog } from '@/components/social/ShareDialog'
 import type { Track } from '@/lib/types'
 
 export function TrackMenu({
@@ -32,6 +33,7 @@ export function TrackMenu({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
 
   async function remove(close: () => void) {
     close()
@@ -84,6 +86,14 @@ export function TrackMenu({
               }}
             >
               <Plus size={15} /> Добавить в плейлист
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                close()
+                setShareOpen(true)
+              }}
+            >
+              <Share2 size={15} /> Поделиться
             </MenuItem>
             {(onMoveUp || onMoveDown) && (
               <>
@@ -154,6 +164,13 @@ export function TrackMenu({
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         track={track}
+      />
+      <ShareDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        type="track"
+        id={track.id}
+        title={`${track.title} — ${track.artist}`}
       />
       <ReportDialog open={reportOpen} onClose={() => setReportOpen(false)} track={track} />
       <EditTrackDialog

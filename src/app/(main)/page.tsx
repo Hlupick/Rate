@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth'
 import { getPublicPlaylists, libraryStats, listArtists, listTracks, recentlyPlayed } from '@/lib/queries'
+import { getFriendActivity } from '@/lib/friend-feed'
+import { FriendFeed } from '@/components/home/FriendFeed'
 import { CardGrid, SectionHeader } from '@/components/ui/Section'
 import { TrackCard } from '@/components/track/TrackCard'
 import { RecentGrid } from '@/components/home/RecentGrid'
@@ -19,6 +21,7 @@ export default async function HomePage() {
   const playlists = getPublicPlaylists(6)
   const artists = listArtists(undefined, 5)
   const totals = libraryStats(viewerId ?? '')
+  const friendFeed = user ? getFriendActivity(user.id) : []
 
   const hour = new Date().getHours()
   const greeting =
@@ -81,6 +84,8 @@ export default async function HomePage() {
             Вы ещё ничего не слушали. Начните с «Новых загрузок» — или загрузите свой первый трек.
           </div>
         )}
+
+        {friendFeed.length > 0 && <FriendFeed items={friendFeed} />}
 
         <SectionHeader title="Новые загрузки" href="/search" action="Все треки" />
         <CardGrid>

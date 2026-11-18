@@ -182,6 +182,8 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
   sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   body TEXT NOT NULL,
+  attachment_type TEXT,
+  attachment_id TEXT,
   created_at INTEGER NOT NULL
 );
 
@@ -277,6 +279,8 @@ function createDb() {
     'ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
     'ALTER TABLE users ADD COLUMN avatar_frame TEXT',
     'ALTER TABLE users ADD COLUMN points INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE chat_messages ADD COLUMN attachment_type TEXT',
+    'ALTER TABLE chat_messages ADD COLUMN attachment_id TEXT',
     'ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT \'user\'',
     'ALTER TABLE tracks ADD COLUMN review_status TEXT NOT NULL DEFAULT \'pending\'',
     'ALTER TABLE tracks ADD COLUMN review_note TEXT',

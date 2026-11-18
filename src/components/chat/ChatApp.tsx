@@ -10,6 +10,7 @@ import { CHAT_MESSAGE_MAX } from '@/lib/chat-config'
 import type { ChatMessage, ChatOther, ChatSummary } from '@/lib/chat'
 import { cn } from '@/lib/utils'
 import { ChatSettings } from './ChatSettings'
+import { ChatAttachmentCard } from './ChatAttachmentCard'
 
 const clock = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' })
 
@@ -490,7 +491,12 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
                             : 'rounded-bl-md bg-white/10 text-ink',
                         )}
                       >
-                        <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                        {message.body && (
+                          <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                        )}
+                        {message.attachment && (
+                          <ChatAttachmentCard attachment={message.attachment} />
+                        )}
                         <span
                           className={cn(
                             'mt-1 block text-right text-[9px] tabular-nums',

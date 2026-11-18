@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Globe2, Lock, Pencil, Trash2 } from 'lucide-react'
+import { Globe2, Lock, Pencil, Share2, Trash2 } from 'lucide-react'
 import { Menu, MenuItem } from '@/components/ui/Menu'
 import { Modal } from '@/components/ui/Modal'
 import { ImagePicker } from '@/components/ui/ImagePicker'
+import { ShareDialog } from '@/components/social/ShareDialog'
 
 export function PlaylistMenu({
   playlistId,
@@ -24,6 +25,7 @@ export function PlaylistMenu({
 }) {
   const router = useRouter()
   const [editOpen, setEditOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const [newName, setNewName] = useState(name)
   const [newDescription, setNewDescription] = useState(description ?? '')
   const [newAvatar, setNewAvatar] = useState(avatar)
@@ -110,6 +112,16 @@ export function PlaylistMenu({
               {newPublic ? <Lock size={15} /> : <Globe2 size={15} />}
               {newPublic ? 'Сделать приватным' : 'Сделать публичным'}
             </MenuItem>
+            {newPublic && (
+              <MenuItem
+                onClick={() => {
+                  close()
+                  setShareOpen(true)
+                }}
+              >
+                <Share2 size={15} /> Поделиться
+              </MenuItem>
+            )}
             <div className="my-1 h-px bg-white/5" />
             <MenuItem danger onClick={remove}>
               <Trash2 size={15} /> Удалить плейлист
@@ -117,6 +129,14 @@ export function PlaylistMenu({
           </>
         )}
       </Menu>
+
+      <ShareDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        type="playlist"
+        id={playlistId}
+        title={name}
+      />
 
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Изменить плейлист">
         <div className="space-y-4">

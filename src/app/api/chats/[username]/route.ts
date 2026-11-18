@@ -50,7 +50,7 @@ export async function POST(
   }
 
   const { username } = await params
-  let body: { body?: string }
+  let body: { body?: string; attachment?: { type?: string; id?: string } }
   try {
     body = await request.json()
   } catch {
@@ -62,7 +62,17 @@ export async function POST(
     return NextResponse.json({ error: 'Сообщение слишком длинное' }, { status: 400 })
   }
 
-  const result = sendChatMessage(user.id, decodeURIComponent(username), text)
+  let attachment: { type: 'track' | 'playlist'; id: string } | undefined
+  if (body.attachment) {
+    const type = body.attachment.type
+    const id = body.attachment.id
+    if ((type !== 'track' && type !== 'playlist') || typeof id !== 'string' || !id) {
+      return NextResponse.json({ error: 'Некорректное вложение' }, { status: 400 })
+    }
+    attachment = { type, id }
+  }
+
+  const result = sendChatMessage(user.id, decodeURIComponent(username), text, attachment)
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status })
   }

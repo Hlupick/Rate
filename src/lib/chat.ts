@@ -9,11 +9,33 @@ type Row = Record<string, any>
 
 const TYPING_TTL_MS = 5_000
 
+export type ChatTrackAttachment = {
+  id: string
+  title: string
+  artist: string
+  album: string | null
+  duration: number
+}
+
+export type ChatPlaylistAttachment = {
+  id: string
+  name: string
+  ownerName: string
+  avatar: string | null
+  cover: string | null
+  trackCount: number
+}
+
+export type ChatAttachment =
+  | { type: 'track'; track: ChatTrackAttachment | null }
+  | { type: 'playlist'; playlist: ChatPlaylistAttachment | null }
+
 export type ChatMessage = {
   id: number
   body: string
   createdAt: number
   mine: boolean
+  attachment: ChatAttachment | null
 }
 
 export type ChatSummary = {
@@ -105,6 +127,88 @@ function cleanBody(value: string): string {
     .slice(0, CHAT_MESSAGE_MAX)
 }
 
+function placeholders(count: number): string {
+  return Array.from({ length: count }, () => '?').join(', ')
+}
+
+/** Loads track/playlist cards for a page of messages in two queries. */
+function hydrateAttachments(rows: Row[]): Map<number, ChatAttachment> {
+  const trackIds = new Set<string>()
+  const playlistIds = new Set<string>()
+  for (const row of rows) {
+    if (!row.attachment_id) continue
+    if (row.attachment_type === 'track') trackIds.add(String(row.attachment_id))
+    if (row.attachment_type === 'playlist') playlistIds.add(String(row.attachment_id))
+  }
+
+  const tracks = new Map<string, ChatTrackAttachment>()
+  if (trackIds.size > 0) {
+    const list = db
+      .prepare(
+        `SELECT id, title, artist, album, duration FROM tracks
+         WHERE id IN (${placeholders(trackIds.size)}) AND review_status = 'approved'`,
+      )
+      .all(...trackIds) as Row[]
+    for (const track of list) {
+      tracks.set(String(track.id), {
+        id: String(track.id),
+        title: String(track.title),
+        artist: String(track.artist),
+        album: track.album ? String(track.album) : null,
+        duration: Number(track.duration ?? 0),
+      })
+    }
+  }
+
+  const playlists = new Map<string, ChatPlaylistAttachment>()
+  if (playlistIds.size > 0) {
+    const list = db
+      .prepare(
+        `SELECT p.id, p.name, p.avatar, p.cover, u.display_name AS owner_name,
+                (SELECT COUNT(*) FROM playlist_tracks pt
+                 JOIN tracks t ON t.id = pt.track_id
+                 WHERE pt.playlist_id = p.id AND t.review_status = 'approved') AS track_count
+         FROM playlists p JOIN users u ON u.id = p.owner_id
+         WHERE p.id IN (${placeholders(playlistIds.size)}) AND p.is_public = 1`,
+      )
+      .all(...playlistIds) as Row[]
+    for (const playlist of list) {
+      playlists.set(String(playlist.id), {
+        id: String(playlist.id),
+        name: String(playlist.name),
+        ownerName: String(playlist.owner_name),
+        avatar: playlist.avatar ? String(playlist.avatar) : null,
+        cover: playlist.cover ? String(playlist.cover) : null,
+        trackCount: Number(playlist.track_count ?? 0),
+      })
+    }
+  }
+
+  const result = new Map<number, ChatAttachment>()
+  for (const row of rows) {
+    if (!row.attachment_id) continue
+    if (row.attachment_type === 'track') {
+      result.set(Number(row.id), { type: 'track', track: tracks.get(String(row.attachment_id)) ?? null })
+    } else if (row.attachment_type === 'playlist') {
+      result.set(Number(row.id), {
+        type: 'playlist',
+        playlist: playlists.get(String(row.attachment_id)) ?? null,
+      })
+    }
+  }
+  return result
+}
+
+function attachmentPreview(row: Row): string | null {
+  if (row.attachment_type === 'track') {
+    return row.attachment_title ? `Трек: ${row.attachment_title}` : 'Трек недоступен'
+  }
+  if (row.attachment_type === 'playlist') {
+    return row.attachment_name ? `Плейлист: ${row.attachment_name}` : 'Плейлист недоступен'
+  }
+  return null
+}
+
 /** Conversations the viewer can see: only chats with current mutual friends. */
 export function listChats(userId: string): ChatSummary[] {
   const rows = db
@@ -114,6 +218,7 @@ export function listChats(userId: string): ChatSummary[] {
               u.username, u.display_name, u.avatar, u.avatar_frame, u.last_seen_at,
               om.typing_at AS other_typing,
               m.body AS last_body, m.sender_id AS last_sender,
+              m.attachment_type, lt.title AS attachment_title, lp.name AS attachment_name,
               (SELECT COUNT(*) FROM chat_messages x
                WHERE x.chat_id = c.id AND x.sender_id <> ? AND x.id > cm.last_read_id) AS unread
        FROM chats c
@@ -122,6 +227,10 @@ export function listChats(userId: string): ChatSummary[] {
        JOIN users u ON u.id = CASE WHEN c.user_a = ? THEN c.user_b ELSE c.user_a END
        LEFT JOIN chat_messages m ON m.id =
          (SELECT id FROM chat_messages WHERE chat_id = c.id ORDER BY id DESC LIMIT 1)
+       LEFT JOIN tracks lt ON m.attachment_type = 'track' AND lt.id = m.attachment_id
+         AND lt.review_status = 'approved'
+       LEFT JOIN playlists lp ON m.attachment_type = 'playlist' AND lp.id = m.attachment_id
+         AND lp.is_public = 1
        WHERE (c.user_a = ? OR c.user_b = ?)
          AND EXISTS (
            SELECT 1 FROM follows f1
@@ -141,7 +250,7 @@ export function listChats(userId: string): ChatSummary[] {
       displayName: String(row.display_name),
       avatar: row.avatar ? String(row.avatar) : null,
       avatarFrame: clampAvatarFrame(row.avatar_frame ? String(row.avatar_frame) : null),
-      lastMessage: row.last_body ? String(row.last_body) : null,
+      lastMessage: row.last_body ? String(row.last_body) : attachmentPreview(row),
       lastMessageAt: Number(row.last_message_at ?? 0),
       lastMessageMine: String(row.last_sender ?? '') === userId,
       unread: Number(row.unread ?? 0),
@@ -212,13 +321,13 @@ export function getChatThread(
   if (options.afterId && options.afterId > 0) {
     rows = db
       .prepare(
-        'SELECT id, sender_id, body, created_at FROM chat_messages WHERE chat_id = ? AND id > ? ORDER BY id ASC LIMIT 100',
+        'SELECT id, sender_id, body, attachment_type, attachment_id, created_at FROM chat_messages WHERE chat_id = ? AND id > ? ORDER BY id ASC LIMIT 100',
       )
       .all(chatId, Math.floor(options.afterId)) as Row[]
   } else if (options.beforeId && options.beforeId > 0) {
     rows = db
       .prepare(
-        'SELECT id, sender_id, body, created_at FROM chat_messages WHERE chat_id = ? AND id < ? ORDER BY id DESC LIMIT ?',
+        'SELECT id, sender_id, body, attachment_type, attachment_id, created_at FROM chat_messages WHERE chat_id = ? AND id < ? ORDER BY id DESC LIMIT ?',
       )
       .all(chatId, Math.floor(options.beforeId), CHAT_PAGE_SIZE) as Row[]
     hasMore = rows.length === CHAT_PAGE_SIZE
@@ -226,12 +335,14 @@ export function getChatThread(
   } else {
     rows = db
       .prepare(
-        'SELECT id, sender_id, body, created_at FROM chat_messages WHERE chat_id = ? ORDER BY id DESC LIMIT ?',
+        'SELECT id, sender_id, body, attachment_type, attachment_id, created_at FROM chat_messages WHERE chat_id = ? ORDER BY id DESC LIMIT ?',
       )
       .all(chatId, CHAT_PAGE_SIZE) as Row[]
     hasMore = rows.length === CHAT_PAGE_SIZE
     rows.reverse()
   }
+
+  const attachments = hydrateAttachments(rows)
 
   return {
     ok: true,
@@ -245,9 +356,15 @@ export function getChatThread(
         body: String(row.body),
         createdAt: Number(row.created_at),
         mine: String(row.sender_id) === userId,
+        attachment: attachments.get(Number(row.id)) ?? null,
       })),
     },
   }
+}
+
+export type ChatAttachmentInput = {
+  type: 'track' | 'playlist'
+  id: string
 }
 
 export type SendMessageResult =
@@ -258,6 +375,7 @@ export function sendChatMessage(
   userId: string,
   otherUsername: string,
   rawBody: string,
+  attachmentInput?: ChatAttachmentInput | null,
 ): SendMessageResult {
   const other = userByUsername(otherUsername)
   if (!other || Number(other.is_banned ?? 0) === 1) {
@@ -269,8 +387,61 @@ export function sendChatMessage(
     return { ok: false, status: 403, error: 'Писать можно только друзьям' }
   }
 
+  let attachment: ChatAttachment | null = null
+  if (attachmentInput) {
+    const attachmentId = attachmentInput.id.trim()
+    if (attachmentInput.type === 'track') {
+      const row = db
+        .prepare(
+          `SELECT id, title, artist, album, duration FROM tracks
+           WHERE id = ? AND review_status = 'approved'`,
+        )
+        .get(attachmentId) as Row | undefined
+      if (!row) {
+        return { ok: false, status: 400, error: 'Этот трек недоступен для отправки' }
+      }
+      attachment = {
+        type: 'track',
+        track: {
+          id: String(row.id),
+          title: String(row.title),
+          artist: String(row.artist),
+          album: row.album ? String(row.album) : null,
+          duration: Number(row.duration ?? 0),
+        },
+      }
+    } else if (attachmentInput.type === 'playlist') {
+      const row = db
+        .prepare(
+          `SELECT p.id, p.name, p.avatar, p.cover, u.display_name AS owner_name,
+                  (SELECT COUNT(*) FROM playlist_tracks pt
+                   JOIN tracks t ON t.id = pt.track_id
+                   WHERE pt.playlist_id = p.id AND t.review_status = 'approved') AS track_count
+           FROM playlists p JOIN users u ON u.id = p.owner_id
+           WHERE p.id = ? AND p.is_public = 1`,
+        )
+        .get(attachmentId) as Row | undefined
+      if (!row) {
+        return { ok: false, status: 400, error: 'Поделиться можно только публичным плейлистом' }
+      }
+      attachment = {
+        type: 'playlist',
+        playlist: {
+          id: String(row.id),
+          name: String(row.name),
+          ownerName: String(row.owner_name),
+          avatar: row.avatar ? String(row.avatar) : null,
+          cover: row.cover ? String(row.cover) : null,
+          trackCount: Number(row.track_count ?? 0),
+        },
+      }
+    } else {
+      return { ok: false, status: 400, error: 'Неизвестное вложение' }
+    }
+  }
+
   const body = cleanBody(rawBody)
-  if (!body) return { ok: false, status: 400, error: 'Сообщение пустое' }
+  if (!body && !attachment) return { ok: false, status: 400, error: 'Сообщение пустое' }
 
   const [a, b] = pairKey(userId, otherId)
   const now = Date.now()
@@ -297,9 +468,22 @@ export function sendChatMessage(
 
     const inserted = db
       .prepare(
-        'INSERT INTO chat_messages (chat_id, sender_id, body, created_at) VALUES (?, ?, ?, ?)',
+        `INSERT INTO chat_messages
+           (chat_id, sender_id, body, attachment_type, attachment_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
       )
-      .run(id, userId, body, now)
+      .run(
+        id,
+        userId,
+        body,
+        attachment?.type ?? null,
+        attachment
+          ? attachment.type === 'track'
+            ? attachment.track?.id ?? null
+            : attachment.playlist?.id ?? null
+          : null,
+        now,
+      )
     const messageId = Number(inserted.lastInsertRowid)
     db.prepare('UPDATE chat_members SET typing_at = 0 WHERE chat_id = ? AND user_id = ?').run(
       id,
@@ -310,7 +494,7 @@ export function sendChatMessage(
     return {
       ok: true,
       chatId: id,
-      message: { id: messageId, body, createdAt: now, mine: true },
+      message: { id: messageId, body, createdAt: now, mine: true, attachment },
     }
   } catch (error) {
     db.exec('ROLLBACK')
@@ -397,12 +581,17 @@ export function listNotifications(
 
   const rows = db
     .prepare(
-      `SELECT m.id, m.body, m.created_at,
+      `SELECT m.id, m.body, m.created_at, m.attachment_type,
+              lt.title AS attachment_title, lp.name AS attachment_name,
               u.username, u.display_name, u.avatar, u.avatar_frame
        FROM chat_messages m
        JOIN chats c ON c.id = m.chat_id
        JOIN chat_members cm ON cm.chat_id = c.id AND cm.user_id = ?
        JOIN users u ON u.id = m.sender_id
+       LEFT JOIN tracks lt ON m.attachment_type = 'track' AND lt.id = m.attachment_id
+         AND lt.review_status = 'approved'
+       LEFT JOIN playlists lp ON m.attachment_type = 'playlist' AND lp.id = m.attachment_id
+         AND lp.is_public = 1
        WHERE (c.user_a = ? OR c.user_b = ?)
          AND m.sender_id <> ?
          AND m.id > ?
@@ -426,7 +615,7 @@ export function listNotifications(
       displayName: String(row.display_name),
       avatar: row.avatar ? String(row.avatar) : null,
       avatarFrame: clampAvatarFrame(row.avatar_frame ? String(row.avatar_frame) : null),
-      body: String(row.body),
+      body: String(row.body) || attachmentPreview(row) || 'Сообщение',
       createdAt: Number(row.created_at),
     })),
   }
