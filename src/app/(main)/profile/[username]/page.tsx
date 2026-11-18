@@ -61,7 +61,7 @@ export default async function ProfilePage({
             </div>
             <h1 className="mt-2 flex flex-wrap items-center justify-center gap-2 break-words text-3xl font-extrabold tracking-tight md:justify-start md:text-4xl xl:text-5xl">
               <span>{profile.displayName}</span>
-              <StreakChip username={profile.username} />
+              <StreakChip username={profile.username} variant="glass" />
             </h1>
             <p className="mt-2 text-sm text-muted">
               @{profile.username} · загрузок: {uploads.length} · прослушиваний:{' '}
@@ -69,12 +69,12 @@ export default async function ProfilePage({
             </p>
             {listeningSeconds > 0 && (
               <div className="mt-3 flex justify-center md:justify-start">
-                <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/[0.08] px-3.5 py-1.5">
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3.5 py-1.5 backdrop-blur-md">
                   <Headphones size={14} className="text-amber-300" aria-hidden />
                   <span className="text-sm font-bold tabular-nums text-amber-100">
                     {formatTotalDuration(listeningSeconds)}
                   </span>
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-amber-200/60">
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-amber-200/70">
                     в музыке
                   </span>
                 </span>
@@ -91,13 +91,13 @@ export default async function ProfilePage({
                 />
                 <Link
                   href="/upload"
-                  className="rounded-full border border-line px-4 py-1.5 text-xs font-medium text-muted transition hover:border-white/30 hover:text-ink"
+                  className="rounded-full border border-white/10 bg-black/40 px-4 py-1.5 text-xs font-medium text-muted backdrop-blur-md transition hover:border-white/25 hover:bg-black/60 hover:text-ink"
                 >
                   Загрузить трек
                 </Link>
                 <Link
                   href="/library"
-                  className="rounded-full border border-line px-4 py-1.5 text-xs font-medium text-muted transition hover:border-white/30 hover:text-ink"
+                  className="rounded-full border border-white/10 bg-black/40 px-4 py-1.5 text-xs font-medium text-muted backdrop-blur-md transition hover:border-white/25 hover:bg-black/60 hover:text-ink"
                 >
                   Моя медиатека
                 </Link>

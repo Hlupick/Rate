@@ -81,7 +81,7 @@ export function PlayerBar() {
   return (
     <>
       <QueuePanel />
-      <div className="relative flex h-[74px] shrink-0 items-center gap-2 px-2 md:h-[92px] md:gap-4 md:px-4">
+      <div className="relative flex shrink-0 flex-col gap-1 px-2 pb-2 pt-1 md:h-[92px] md:flex-row md:items-center md:gap-4 md:px-4 md:pb-0 md:pt-0">
         <div
           className="absolute inset-x-2 top-0 flex h-5 items-start md:hidden"
           onPointerDown={(event) => {
@@ -96,57 +96,54 @@ export function PlayerBar() {
           </div>
         </div>
 
-        {/* Now playing */}
-        <div className="flex min-w-0 flex-1 items-center gap-2.5 md:w-[28%] md:flex-none md:gap-3">
-          {current ? (
-            <>
-              <TrackAvatar
-                title={current.title}
-                className="h-11 w-11 md:h-14 md:w-14"
-                textClassName="md:text-[11px]"
-              />
-              <div className="min-w-0">
-                <Link
-                  href={`/track/${current.id}`}
-                  className="block truncate text-[13px] font-medium hover:underline md:text-sm"
-                >
-                  {current.title}
-                </Link>
-                <Link
-                  href={`/artist/${encodeURIComponent(current.artist)}`}
-                  className="block truncate text-[11px] text-muted transition hover:text-ink hover:underline md:text-xs"
-                >
-                  {current.artist}
-                </Link>
+        <div className="flex w-full min-w-0 items-center gap-2.5 md:contents">
+          {/* Now playing */}
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 md:w-[28%] md:flex-none md:gap-3">
+            {current ? (
+              <>
+                <TrackAvatar
+                  title={current.title}
+                  className="h-11 w-11 md:h-14 md:w-14"
+                  textClassName="md:text-[11px]"
+                />
+                <div className="min-w-0">
+                  <Link
+                    href={`/track/${current.id}`}
+                    className="block truncate text-[13px] font-medium hover:underline md:text-sm"
+                  >
+                    {current.title}
+                  </Link>
+                  <Link
+                    href={`/artist/${encodeURIComponent(current.artist)}`}
+                    className="block truncate text-[11px] text-muted transition hover:text-ink hover:underline md:text-xs"
+                  >
+                    {current.artist}
+                  </Link>
+                </div>
+                <LikeButton
+                  key={current.id}
+                  trackId={current.id}
+                  initialLiked={Boolean(current.liked)}
+                  className="ml-auto shrink-0 sm:ml-0"
+                />
+              </>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="hidden h-14 w-14 rounded-md border border-dashed border-line sm:block" />
+                <div className="text-xs text-muted md:text-sm">
+                  <span className="sm:hidden">Нет трека</span>
+                  <span className="hidden sm:inline">Ничего не играет</span>
+                  <div className="hidden text-xs text-dim sm:block">Выберите трек в библиотеке</div>
+                </div>
               </div>
-              <LikeButton
-                key={current.id}
-                trackId={current.id}
-                initialLiked={Boolean(current.liked)}
-                className="hidden sm:flex"
-              />
-            </>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="hidden h-14 w-14 rounded-md border border-dashed border-line sm:block" />
-              <div className="text-xs text-muted md:text-sm">
-                <span className="sm:hidden">Нет трека</span>
-                <span className="hidden sm:inline">Ничего не играет</span>
-                <div className="hidden text-xs text-dim sm:block">Выберите трек в библиотеке</div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Controls */}
-        <div className="flex shrink-0 items-center gap-1 md:flex-1 md:flex-col md:gap-1.5">
-          <div className="flex items-center gap-1 md:gap-2">
-            <IconButton
-              label="Перемешать"
-              active={shuffle}
-              onClick={toggleShuffle}
-              className="hidden md:flex"
-            >
+        <div className="flex w-full items-center gap-1 md:w-auto md:flex-1 md:flex-col md:gap-1.5">
+          <div className="flex items-center justify-center gap-1 md:justify-start md:gap-2">
+            <IconButton label="Перемешать" active={shuffle} onClick={toggleShuffle}>
               <Shuffle size={16} />
             </IconButton>
             <IconButton label="Предыдущий трек" onClick={prev}>
@@ -177,7 +174,6 @@ export function PlayerBar() {
               }
               active={repeat !== 'off'}
               onClick={cycleRepeat}
-              className="hidden md:flex"
             >
               {repeat === 'one' ? <Repeat1 size={16} /> : <Repeat size={16} />}
             </IconButton>

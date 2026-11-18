@@ -56,7 +56,7 @@ export function ProfileEditor({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center justify-center gap-2 rounded-full border border-line px-4 py-1.5 text-xs font-medium text-muted transition hover:border-white/30 hover:text-ink"
+        className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-black/40 px-4 py-1.5 text-xs font-medium text-muted backdrop-blur-md transition hover:border-white/25 hover:bg-black/60 hover:text-ink"
       >
         <Pencil size={13} /> Редактировать профиль
       </button>
