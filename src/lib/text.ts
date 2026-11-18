@@ -101,3 +101,172 @@ export function parseImportLines(input: string): ImportRow[] {
     .filter((row) => row.title.length > 0)
     .slice(0, 2000)
 }
+
+function splitArtistTitle(value: string): ImportRow {
+  const parts = value.split(/\s+[—–-]\s+/)
+  if (parts.length >= 2) {
+    return { artist: parts[0].trim(), title: parts.slice(1).join(' — ').trim() }
+  }
+  return { title: value.trim(), artist: '' }
+}
+
+export function parseImportM3u(input: string): ImportRow[] {
+  const rows: ImportRow[] = []
+  const seen = new Set<string>()
+  const hasExtinf = /^#EXTINF:/m.test(input)
+  const push = (row: ImportRow) => {
+    if (!row.title) return
+    const key = `${row.title.toLowerCase()}|${row.artist.toLowerCase()}`
+    if (seen.has(key)) return
+    seen.add(key)
+    rows.push(row)
+  }
+
+  for (const raw of input.split(/\r?\n/)) {
+    const line = raw.trim()
+    if (!line) continue
+
+    if (line.startsWith('#EXTINF:')) {
+      const comma = line.indexOf(',')
+      if (comma === -1) continue
+      push(splitArtistTitle(line.slice(comma + 1)))
+      continue
+    }
+    if (line.startsWith('#')) continue
+    if (hasExtinf) continue
+
+    // File paths without EXTINF: derive "Artist - Title" from the file name.
+    const withoutQuery = line.split('?')[0]
+    const base = withoutQuery.split(/[\\/]/).pop() ?? ''
+    const name = base.replace(/\.[a-z0-9]{1,5}$/i, '').replace(/_/g, ' ').trim()
+    if (name && !/^[a-z]+:$/i.test(name)) push(splitArtistTitle(name))
+  }
+
+  return rows.slice(0, 2000)
+}
+
+function artistFromValue(value: unknown): string {
+  if (typeof value === 'string') return value.trim()
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === 'string') return item.trim()
+        if (item && typeof item === 'object') {
+          const obj = item as Record<string, unknown>
+          const name = obj.name ?? obj.title
+          return typeof name === 'string' ? name.trim() : ''
+        }
+        return ''
+      })
+      .filter(Boolean)
+      .join(', ')
+  }
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>
+    const name = obj.name ?? obj.title
+    return typeof name === 'string' ? name.trim() : ''
+  }
+  return ''
+}
+
+function pickString(obj: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = obj[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return ''
+}
+
+export function parseImportJson(input: string): ImportRow[] {
+  let data: unknown
+  try {
+    data = JSON.parse(input)
+  } catch {
+    return []
+  }
+
+  const rows: ImportRow[] = []
+  const seen = new Set<string>()
+  const push = (title: string, artist: string) => {
+    if (!title) return
+    const key = `${title.toLowerCase()}|${artist.toLowerCase()}`
+    if (seen.has(key)) return
+    seen.add(key)
+    rows.push({ title, artist })
+  }
+
+  if (Array.isArray(data) && data.every((item) => typeof item === 'string')) {
+    for (const item of data) {
+      const row = splitArtistTitle(item)
+      push(row.title, row.artist)
+    }
+    return rows.slice(0, 2000)
+  }
+
+  const visit = (value: unknown) => {
+    if (Array.isArray(value)) {
+      value.forEach(visit)
+      return
+    }
+    if (!value || typeof value !== 'object') return
+
+    const obj = value as Record<string, unknown>
+    const title = pickString(obj, [
+      'trackName',
+      'track_name',
+      'songTitle',
+      'song_title',
+      'title',
+      'name',
+      'song',
+    ])
+    const artist = artistFromValue(
+      obj.artistName ??
+        obj.artist_name ??
+        obj.artist ??
+        obj.artists ??
+        obj.performers ??
+        obj.albumArtist ??
+        obj.album_artist,
+    )
+    const trackish =
+      'trackName' in obj ||
+      'track_name' in obj ||
+      'album' in obj ||
+      'albumName' in obj ||
+      'duration' in obj ||
+      'duration_ms' in obj ||
+      'isrc' in obj
+
+    if (title && (artist || trackish)) push(title, artist)
+
+    for (const nested of Object.values(obj)) {
+      if (nested && typeof nested === 'object') visit(nested)
+    }
+  }
+
+  visit(data)
+  return rows.slice(0, 2000)
+}
+
+function looksLikeCsv(value: string): boolean {
+  const first = value.split(/\r?\n/, 1)[0]?.toLowerCase() ?? ''
+  return (
+    first.includes(',') &&
+    (first.includes('track name') ||
+      first.includes('artist') ||
+      first.includes('title') ||
+      first.split(',').length >= 3)
+  )
+}
+
+export function parsePlaylistFile(input: string, fileName?: string): ImportRow[] {
+  const text = input.trim()
+  if (!text) return []
+
+  const ext = fileName?.split('.').pop()?.toLowerCase() ?? ''
+  if (ext === 'm3u' || ext === 'm3u8' || text.startsWith('#EXTM3U')) return parseImportM3u(text)
+  if (ext === 'json' || text.startsWith('{') || text.startsWith('[')) return parseImportJson(text)
+  if (ext === 'csv' || looksLikeCsv(text)) return parseImportCsv(text)
+  return parseImportLines(text)
+}

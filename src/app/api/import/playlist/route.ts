@@ -12,7 +12,6 @@ import { downloadCover, isAllowedCoverUrl } from '@/lib/storage'
 import { clientIp, rateLimit } from '@/lib/rate-limit'
 
 type Row = { title: string; artist: string }
-const PROVIDERS = new Set(['spotify', 'deezer'])
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
@@ -43,8 +42,7 @@ export async function POST(request: Request) {
   const name = (body.name ?? '').trim().slice(0, 80)
   const description = (body.description ?? '').trim().slice(0, 200) || null
   const sourceUrl = (body.sourceUrl ?? '').trim().slice(0, 500) || null
-  const source =
-    body.source && PROVIDERS.has(body.source) ? (body.source as 'spotify' | 'deezer') : null
+  const source = body.source === 'deezer' ? ('deezer' as const) : null
   const coverUrl = (body.coverUrl ?? '').trim().slice(0, 1000) || null
 
   if (!name) return NextResponse.json({ error: 'Введите название плейлиста' }, { status: 400 })

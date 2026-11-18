@@ -37,19 +37,24 @@ export default async function ImportPage() {
           <ListPlus size={26} /> Импорт плейлиста
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          Вставьте ссылку на публичный плейлист <strong className="text-ink">Spotify</strong> или{' '}
-          <strong className="text-ink">Deezer</strong> — monah перенесёт названия и исполнителей и
-          создаст плейлист. Совпавшие с библиотекой треки станут играбельными, остальные
-          сохранятся как «не загружено». Аудио из сервисов не скачивается.
+          Вставьте ссылку на публичный плейлист <strong className="text-ink">Deezer</strong> — monah
+          перенесёт названия и исполнителей и создаст плейлист. Для <strong>Lane</strong>, Spotify
+          и других плееров используйте файл плейлиста (M3U/M3U8, JSON, CSV) или список строк.
+          Совпавшие с библиотекой треки станут играбельными, остальные сохранятся как «не
+          загружено». Аудио из сервисов не скачивается.
         </p>
       </div>
 
       <div className="mt-5 rounded-lg border border-line bg-card p-4 text-sm leading-relaxed text-muted">
         <div className="mb-2 font-semibold text-ink">Если ссылка не подходит</div>
         <ol className="list-decimal space-y-1.5 pl-5">
-          <li>Приватные плейлисты Spotify по ссылке не читаются.</li>
           <li>
-            Откройте{' '}
+            <strong className="text-ink">Lane</strong> — мобильный плеер без публичного веб-API.
+            Экспортируйте плейлист в M3U/M3U8 или JSON и загрузите файл во вкладке «CSV / M3U /
+            JSON».
+          </li>
+          <li>
+            Spotify и другие сервисы — выгрузите CSV через{' '}
             <a
               href="https://exportify.net"
               target="_blank"
@@ -57,14 +62,11 @@ export default async function ImportPage() {
               className="text-ink underline underline-offset-2"
             >
               exportify.net
-            </a>
-            , войдите через Spotify и нажмите Export.
+            </a>{' '}
+            или используйте список строк.
           </li>
-          <li>Загрузите полученный CSV во вкладке «CSV из Exportify».</li>
+          <li>Форматы файлов: CSV, M3U, M3U8, JSON, TXT.</li>
         </ol>
-        <p className="mt-2 text-xs text-dim">
-          Есть и третий вариант — вставить список строк вручную во вкладке «Список строк».
-        </p>
       </div>
 
       <div className="mt-6">

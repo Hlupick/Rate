@@ -1,6 +1,4 @@
-import { normalizeText } from './text'
-
-export type ImportProvider = 'spotify' | 'deezer'
+export type ImportProvider = 'deezer'
 
 export type ImportedPlaylist = {
   provider: ImportProvider
@@ -38,8 +36,6 @@ async function getJson<T>(url: string, headers?: Record<string, string>): Promis
   }
   return (await response.json()) as T
 }
-
-/* --------------------------------- Deezer --------------------------------- */
 
 type DeezerPlaylist = {
   id: number
@@ -136,176 +132,15 @@ async function importDeezer(input: string): Promise<ImportedPlaylist> {
   }
 }
 
-/* -------------------------------- Spotify --------------------------------- */
-
-type SpotifyToken = { access_token?: string; expires_in?: number; error?: string }
-type SpotifyPlaylist = {
-  name?: string
-  description?: string
-  images?: { url?: string }[]
-  tracks?: { total?: number }
-  error?: { message?: string; status?: number }
-}
-type SpotifyTracks = {
-  items?: {
-    track?: {
-      name?: string
-      type?: string
-      is_local?: boolean
-      artists?: { name?: string }[]
-    } | null
-  }[]
-  next?: string | null
-  error?: { message?: string; status?: number }
-}
-
-let spotifyToken: { value: string; expiresAt: number } | null = null
-
-function spotifyCredentials(): { id: string; secret: string } {
-  const id = process.env.SPOTIFY_CLIENT_ID?.trim()
-  const secret = process.env.SPOTIFY_CLIENT_SECRET?.trim()
-  if (!id || !secret) {
-    throw new ImportError(
-      'not-configured',
-      'Импорт Spotify не настроен: добавьте SPOTIFY_CLIENT_ID и SPOTIFY_CLIENT_SECRET.',
-    )
-  }
-  return { id, secret }
-}
-
-async function getSpotifyToken(force = false): Promise<string> {
-  if (!force && spotifyToken && spotifyToken.expiresAt > Date.now() + 30_000) {
-    return spotifyToken.value
-  }
-  const { id, secret } = spotifyCredentials()
-  const auth = Buffer.from(`${id}:${secret}`).toString('base64')
-
-  let response: Response
-  try {
-    response = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: 'grant_type=client_credentials',
-      signal: AbortSignal.timeout(TIMEOUT),
-    })
-  } catch {
-    throw new ImportError('network', 'Не удалось получить токен Spotify.')
-  }
-
-  const data = (await response.json().catch(() => ({}))) as SpotifyToken
-  if (!response.ok || !data.access_token) {
-    throw new ImportError('spotify-auth', 'Spotify отклонил ключи приложения.')
-  }
-
-  spotifyToken = {
-    value: data.access_token,
-    expiresAt: Date.now() + Math.max(60, Number(data.expires_in ?? 3600) - 60) * 1000,
-  }
-  return spotifyToken.value
-}
-
-function spotifyIdFromUrl(input: string): string | null {
-  const web = input.match(/open\.spotify\.com\/(?:int-[a-z]+\/)?playlist\/([A-Za-z0-9]+)/i)
-  if (web) return web[1]
-  const uri = input.match(/spotify:playlist:([A-Za-z0-9]+)/i)
-  return uri ? uri[1] : null
-}
-
-async function spotifyRequest<T>(path: string): Promise<T> {
-  let token = await getSpotifyToken()
-  let response = await fetch(`https://api.spotify.com/v1${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    signal: AbortSignal.timeout(TIMEOUT),
-  })
-
-  if (response.status === 401) {
-    token = await getSpotifyToken(true)
-    response = await fetch(`https://api.spotify.com/v1${path}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(TIMEOUT),
-    })
-  }
-
-  if (response.status === 404) {
-    throw new ImportError(
-      'not-found',
-      'Плейлист не найден или приватный. Приватные плейлисты требуют входа в Spotify.',
-    )
-  }
-  if (response.status === 429) {
-    throw new ImportError('rate-limit', 'Spotify временно ограничил запросы. Попробуйте позже.')
-  }
-  if (!response.ok) {
-    throw new ImportError('http', `Spotify вернул ошибку ${response.status}.`)
-  }
-  return (await response.json()) as T
-}
-
-async function importSpotify(input: string): Promise<ImportedPlaylist> {
-  const id = spotifyIdFromUrl(input)
-  if (!id) throw new ImportError('unsupported', 'Не похоже на ссылку плейлиста Spotify.')
-
-  const meta = await spotifyRequest<SpotifyPlaylist>(`/playlists/${id}`)
-  const rows: ImportedPlaylist['rows'] = []
-  const seen = new Set<string>()
-  let offset = 0
-
-  while (rows.length < MAX_TRACKS) {
-    const page = await spotifyRequest<SpotifyTracks>(
-      `/playlists/${id}/tracks?limit=100&offset=${offset}`,
-    )
-    const items = page.items ?? []
-    if (items.length === 0) break
-
-    for (const item of items) {
-      const track = item.track
-      if (!track || track.is_local || (track.type && track.type !== 'track')) continue
-      const title = (track.name ?? '').trim()
-      if (!title) continue
-      const artist = (track.artists ?? []).map((a) => a.name).filter(Boolean).join(', ')
-      const key = `${normalizeText(title)}|${normalizeText(artist)}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      rows.push({ title, artist })
-      if (rows.length >= MAX_TRACKS) break
-    }
-
-    offset += items.length
-    if (!page.next) break
-  }
-
-  if (rows.length === 0) {
-    throw new ImportError('empty', 'В этом плейлисте Spotify нет доступных треков.')
-  }
-
-  return {
-    provider: 'spotify',
-    sourceUrl: `https://open.spotify.com/playlist/${id}`,
-    name: (meta.name ?? 'Плейлист Spotify').trim(),
-    description: meta.description?.trim() || null,
-    coverUrl: meta.images?.[0]?.url ?? null,
-    total: rows.length,
-    rows,
-  }
-}
-
-/* -------------------------------- Facade ---------------------------------- */
-
 export async function resolvePlaylistUrl(input: string): Promise<ImportedPlaylist> {
   const url = input.trim()
-  if (!/^https?:\/\//i.test(url) && !/^spotify:playlist:/i.test(url)) {
-    throw new ImportError('invalid', 'Вставьте ссылку на плейлист Spotify или Deezer.')
+  if (!/^https?:\/\//i.test(url)) {
+    throw new ImportError('invalid', 'Вставьте ссылку на плейлист Deezer.')
   }
-
-  if (/spotify\.com|spotify:playlist:/i.test(url)) return importSpotify(url)
   if (/deezer\.com/i.test(url)) return importDeezer(url)
-
-  throw new ImportError('unsupported', 'Поддерживаются только Spotify и Deezer.')
+  throw new ImportError('unsupported', 'Сейчас поддерживается импорт по ссылке только из Deezer.')
 }
 
-export function providerLabel(provider: ImportProvider): string {
-  return provider === 'spotify' ? 'Spotify' : 'Deezer'
+export function providerLabel(_provider: ImportProvider): string {
+  return 'Deezer'
 }

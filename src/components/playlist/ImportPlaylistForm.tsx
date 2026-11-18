@@ -4,13 +4,13 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, Check, FileUp, Loader2, Music4 } from 'lucide-react'
-import { parseImportCsv, parseImportLines } from '@/lib/text'
+import { parsePlaylistFile } from '@/lib/text'
 import { cn } from '@/lib/utils'
 
-type Mode = 'url' | 'csv' | 'list'
+type Mode = 'url' | 'file' | 'list'
 
 type UrlPreview = {
-  provider: 'spotify' | 'deezer'
+  provider: 'deezer'
   sourceUrl: string
   name: string
   description: string | null
@@ -34,6 +34,7 @@ export function ImportPlaylistForm() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [text, setText] = useState('')
+  const [fileName, setFileName] = useState('')
   const [url, setUrl] = useState('')
   const [preview, setPreview] = useState<UrlPreview | null>(null)
   const [previewBusy, setPreviewBusy] = useState(false)
@@ -44,15 +45,16 @@ export function ImportPlaylistForm() {
   const [copied, setCopied] = useState(false)
 
   const parsedRows = useMemo(
-    () => (mode === 'csv' ? parseImportCsv(text) : parseImportLines(text)),
-    [mode, text],
+    () => parsePlaylistFile(text, fileName),
+    [text, fileName],
   )
   const rows = mode === 'url' ? (preview?.rows ?? []) : parsedRows
 
   async function onFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file) return
-    setMode('csv')
+    setMode('file')
+    setFileName(file.name)
     setText(await file.text())
     setError(null)
     event.target.value = ''
@@ -163,6 +165,7 @@ export function ImportPlaylistForm() {
     setResult(null)
     setError(null)
     setText('')
+    setFileName('')
     setName('')
     setDescription('')
     setUrl('')
@@ -293,7 +296,7 @@ export function ImportPlaylistForm() {
         {(
           [
             ['url', 'По ссылке'],
-            ['csv', 'CSV из Exportify'],
+            ['file', 'CSV / M3U / JSON'],
             ['list', 'Список строк'],
           ] as const
         ).map(([key, label]) => (
@@ -326,7 +329,7 @@ export function ImportPlaylistForm() {
                 setPreview(null)
                 setExistingId(null)
               }}
-              placeholder="https://open.spotify.com/playlist/… или https://www.deezer.com/playlist/…"
+              placeholder="https://www.deezer.com/playlist/…"
               className="min-w-0 flex-1 rounded-md border border-line bg-panel-2 px-3 py-2.5 text-sm placeholder:text-dim focus:border-white/40"
             />
             <button
@@ -340,7 +343,7 @@ export function ImportPlaylistForm() {
             </button>
           </div>
           <p className="text-xs text-dim">
-            Переносятся только названия и исполнители. Аудио из Spotify и Deezer не скачивается.
+            Переносятся только названия и исполнители. Аудио из Deezer не скачивается.
           </p>
 
           {preview && (
@@ -364,7 +367,7 @@ export function ImportPlaylistForm() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                    {preview.provider === 'spotify' ? 'Spotify' : 'Deezer'}
+                    Deezer
                   </div>
                   <div className="truncate text-lg font-bold">{preview.name}</div>
                   <div className="mt-0.5 text-xs text-muted">
@@ -398,25 +401,33 @@ export function ImportPlaylistForm() {
         </div>
       )}
 
-      {mode === 'csv' && (
+      {mode === 'file' && (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex cursor-pointer items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-medium text-muted transition hover:border-white/30 hover:text-ink">
               <FileUp size={15} />
-              Выбрать CSV
-              <input type="file" accept=".csv,text/csv" className="hidden" onChange={onFile} />
+              Выбрать файл
+              <input
+                type="file"
+                accept=".csv,.m3u,.m3u8,.json,.txt,text/csv,audio/x-mpegurl,application/json"
+                className="hidden"
+                onChange={onFile}
+              />
             </label>
-            <span className="text-xs text-dim">или вставь содержимое CSV в поле ниже</span>
+            <span className="text-xs text-dim">
+              CSV из Exportify, M3U/M3U8 из плеера, JSON или TXT
+            </span>
           </div>
           <textarea
             value={text}
             onChange={(event) => setText(event.target.value)}
             rows={8}
             placeholder={
-              'Track Name,Artist Name(s),Album Name\nНочной трамвай,Monah Collective,Ночные линии'
+              '#EXTM3U\n#EXTINF:213,Monah Collective - Ночной трамвай\n\nили CSV:\nTrack Name,Artist Name(s)\nНочной трамвай,Monah Collective'
             }
             className="w-full resize-y rounded-md border border-line bg-panel-2 px-3 py-2.5 font-mono text-xs placeholder:text-dim focus:border-white/40"
           />
+          {fileName && <p className="text-xs text-dim">Файл: {fileName}</p>}
         </div>
       )}
 
