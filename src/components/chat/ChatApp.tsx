@@ -236,7 +236,7 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
   const totalUnread = unread
 
   return (
-    <div className="flex h-[calc(100dvh-9rem)] min-h-[460px] overflow-hidden rounded-lg border border-line bg-panel md:h-[calc(100dvh-6.5rem)]">
+    <div className="flex h-[calc(100dvh-12rem)] min-h-[420px] overflow-hidden rounded-lg border border-line bg-panel md:h-[calc(100dvh-9rem)]">
       <aside
         className={cn(
           'w-full shrink-0 flex-col border-r border-line md:flex md:w-[310px]',
