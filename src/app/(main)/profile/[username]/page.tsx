@@ -115,6 +115,7 @@ export default async function ProfilePage({
                   avatarFrame={profile.avatarFrame}
                   points={points}
                   ownedFrames={ownedFrames}
+                  isAdmin={profile.isAdmin}
                 />
                 <Link
                   href="/upload"

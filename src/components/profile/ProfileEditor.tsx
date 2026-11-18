@@ -22,6 +22,7 @@ export function ProfileEditor({
   avatarFrame,
   points,
   ownedFrames,
+  isAdmin = false,
 }: {
   displayName: string
   bio: string | null
@@ -32,6 +33,7 @@ export function ProfileEditor({
   avatarFrame: string
   points: number
   ownedFrames: string[]
+  isAdmin?: boolean
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -51,7 +53,7 @@ export function ProfileEditor({
   const [error, setError] = useState('')
 
   function chooseFrame(theme: (typeof AVATAR_FRAMES)[number]) {
-    const locked = theme.tier === 'premium' && !owned.includes(theme.key)
+    const locked = theme.tier === 'premium' && !isAdmin && !owned.includes(theme.key)
     if (locked) {
       setBuyError('')
       setPendingBuy(theme.key)
@@ -151,7 +153,7 @@ export function ProfileEditor({
               </div>
               <div className="grid grid-cols-5 gap-1.5">
                 {AVATAR_FRAMES.map((theme) => {
-                  const locked = theme.tier === 'premium' && !owned.includes(theme.key)
+                  const locked = theme.tier === 'premium' && !isAdmin && !owned.includes(theme.key)
                   const active = frame === theme.key
                   return (
                     <button
@@ -204,7 +206,9 @@ export function ProfileEditor({
                         {theme.tier === 'premium'
                           ? locked
                             ? `${formatCount(theme.price)} б.`
-                            : 'куплен'
+                            : isAdmin
+                              ? 'доступен'
+                              : 'куплен'
                           : '·'}
                       </span>
                     </button>

@@ -11,8 +11,15 @@ export function getOwnedFrames(userId: string): AvatarFrame[] {
   return rows.map((row) => clampAvatarFrame(String(row.frame)))
 }
 
-export function ownsFrame(userId: string, frame: AvatarFrame): boolean {
+export function isFrameAdmin(userId: string): boolean {
+  const row = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(userId) as Row | undefined
+  return Boolean(row?.is_admin)
+}
+
+/** Admins get every frame for free, everyone else needs a purchase for premium ones. */
+export function hasFrameAccess(userId: string, frame: AvatarFrame): boolean {
   if (!isPremiumFrame(frame)) return true
+  if (isFrameAdmin(userId)) return true
   return Boolean(
     db.prepare('SELECT 1 FROM user_frames WHERE user_id = ? AND frame = ?').get(userId, frame),
   )
@@ -39,6 +46,10 @@ export function buyFrame(userId: string, value: string): BuyFrameResult {
   const frame = clampAvatarFrame(value)
   if (!isPremiumFrame(frame)) {
     return { ok: false, error: 'Этот ободок бесплатный', points: getUserPoints(userId), owned: getOwnedFrames(userId) }
+  }
+  if (isFrameAdmin(userId)) {
+    db.prepare('UPDATE users SET avatar_frame = ? WHERE id = ?').run(frame, userId)
+    return { ok: true, frame, points: getUserPoints(userId), owned: getOwnedFrames(userId) }
   }
 
   db.exec('BEGIN IMMEDIATE')

@@ -16,7 +16,7 @@ import {
 } from '@/lib/queries'
 import { clientIp, rateLimit } from '@/lib/rate-limit'
 import { clampAvatarFrame } from '@/lib/avatar-frame'
-import { ownsFrame } from '@/lib/frames'
+import { hasFrameAccess } from '@/lib/frames'
 import { clampStatus, clampStatusColor } from '@/lib/status'
 
 export const runtime = 'nodejs'
@@ -49,7 +49,7 @@ export async function PATCH(request: Request) {
 
   if (body.avatarFrame !== undefined) {
     const frame = clampAvatarFrame(body.avatarFrame)
-    if (!ownsFrame(user.id, frame)) {
+    if (!hasFrameAccess(user.id, frame)) {
       return NextResponse.json({ error: 'Сначала купите этот ободок' }, { status: 403 })
     }
   }
