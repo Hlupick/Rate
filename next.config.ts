@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_BUILD_ID: process.env.APP_BUILD_ID ?? 'dev',
   },
-  serverExternalPackages: ['music-metadata', 'nodemailer'],
+  serverExternalPackages: ['music-metadata', 'nodemailer', 'web-push'],
   devIndicators: false,
   async headers() {
     return [

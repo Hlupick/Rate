@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getCurrentUser } from '@/lib/auth'
 import { SettingsForm } from '@/components/account/SettingsForm'
+import { PushSettings } from '@/components/account/PushSettings'
 
 export const metadata: Metadata = { title: 'Настройки' }
 
@@ -26,6 +27,9 @@ export default async function SettingsPage() {
       </div>
       <div className="mt-6">
         <SettingsForm username={user.username} />
+      </div>
+      <div className="mt-4">
+        <PushSettings />
       </div>
     </div>
   )

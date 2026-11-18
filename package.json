@@ -22,7 +22,8 @@
     "next": "^15.5.0",
     "nodemailer": "^10.6.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "web-push": "^4.0.0"
   },
   "devDependencies": {
     "@breezystack/lamejs": "^1.2.7",
@@ -31,6 +32,7 @@
     "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/web-push": "^3.6.4",
     "postcss": "^8.5.0",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.7.0"

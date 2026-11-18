@@ -368,7 +368,13 @@ export type ChatAttachmentInput = {
 }
 
 export type SendMessageResult =
-  | { ok: true; message: ChatMessage; chatId: string }
+  | {
+      ok: true
+      message: ChatMessage
+      chatId: string
+      recipientId: string
+      recipientMuted: boolean
+    }
   | { ok: false; status: 400 | 403 | 404; error: string }
 
 export function sendChatMessage(
@@ -489,11 +495,16 @@ export function sendChatMessage(
       id,
       userId,
     )
+    const recipient = db
+      .prepare('SELECT muted FROM chat_members WHERE chat_id = ? AND user_id = ?')
+      .get(id, otherId) as Row | undefined
 
     db.exec('COMMIT')
     return {
       ok: true,
       chatId: id,
+      recipientId: otherId,
+      recipientMuted: Number(recipient?.muted ?? 0) === 1,
       message: { id: messageId, body, createdAt: now, mine: true, attachment },
     }
   } catch (error) {

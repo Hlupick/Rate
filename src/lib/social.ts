@@ -81,7 +81,13 @@ export function areFriends(userA: string, userB: string): boolean {
 }
 
 export type FollowResult =
-  | { ok: true; relation: FollowRelation; stats: FollowStats }
+  | {
+      ok: true
+      relation: FollowRelation
+      stats: FollowStats
+      targetId: string
+      created: boolean
+    }
   | { ok: false; status: 400 | 403 | 404; error: string }
 
 export function setFollow(
@@ -99,10 +105,14 @@ export function setFollow(
     return { ok: false, status: 403, error: 'Этот аккаунт заблокирован' }
   }
 
+  let created = false
   if (follow) {
-    db.prepare(
-      'INSERT OR IGNORE INTO follows (follower_id, following_id, created_at) VALUES (?, ?, ?)',
-    ).run(viewerId, targetId, Date.now())
+    const inserted = db
+      .prepare(
+        'INSERT OR IGNORE INTO follows (follower_id, following_id, created_at) VALUES (?, ?, ?)',
+      )
+      .run(viewerId, targetId, Date.now())
+    created = Number(inserted.changes) > 0
   } else {
     db.prepare('DELETE FROM follows WHERE follower_id = ? AND following_id = ?').run(
       viewerId,
@@ -114,6 +124,8 @@ export function setFollow(
     ok: true,
     relation: getFollowRelation(viewerId, targetId),
     stats: getFollowStats(targetId),
+    targetId,
+    created,
   }
 }
 

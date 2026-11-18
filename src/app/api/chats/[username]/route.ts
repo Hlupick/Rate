@@ -7,6 +7,7 @@ import {
   sendChatMessage,
 } from '@/lib/chat'
 import { rateLimit } from '@/lib/rate-limit'
+import { sendPushToUser } from '@/lib/push'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -75,6 +76,22 @@ export async function POST(
   const result = sendChatMessage(user.id, decodeURIComponent(username), text, attachment)
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status })
+  }
+
+  if (!result.recipientMuted) {
+    const preview = result.message.body.trim()
+      ? result.message.body.replace(/\s+/g, ' ').slice(0, 140)
+      : result.message.attachment?.type === 'track'
+        ? 'Поделился треком'
+        : result.message.attachment?.type === 'playlist'
+          ? 'Поделился плейлистом'
+          : 'Новое сообщение'
+    void sendPushToUser(result.recipientId, 'messages', {
+      title: user.displayName,
+      body: preview,
+      url: `/chats?with=${encodeURIComponent(user.username)}`,
+      tag: `rate-chat-${user.username}`,
+    }).catch(() => undefined)
   }
 
   return NextResponse.json({

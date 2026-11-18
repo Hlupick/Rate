@@ -187,6 +187,23 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  user_agent TEXT,
+  created_at INTEGER NOT NULL,
+  last_used_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS push_prefs (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  messages INTEGER NOT NULL DEFAULT 1,
+  social INTEGER NOT NULL DEFAULT 1
+);
+
 CREATE TABLE IF NOT EXISTS invites (
   id TEXT PRIMARY KEY,  code TEXT NOT NULL UNIQUE,
   created_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -252,6 +269,7 @@ CREATE INDEX IF NOT EXISTS idx_chats_user_a ON chats(user_a, last_message_at);
 CREATE INDEX IF NOT EXISTS idx_chats_user_b ON chats(user_b, last_message_at);
 CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_chat ON chat_messages(chat_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_email_verifications_email ON email_verifications(email, created_at);
 CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id, created_at);
 `

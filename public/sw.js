@@ -65,3 +65,56 @@ self.addEventListener('fetch', (event) => {
 
   // Navigations are always online: pages can contain account-specific data.
 })
+
+/* ------------------------------- push messages ----------------------------- */
+
+self.addEventListener('push', (event) => {
+  let data = {}
+  try {
+    data = event.data ? event.data.json() : {}
+  } catch {
+    data = {}
+  }
+
+  event.waitUntil(
+    (async () => {
+      const title = data.title || 'Rate'
+      const url = data.url || '/'
+
+      // An open, focused tab already shows in-app toasts for chat messages.
+      if (data.category === 'messages') {
+        const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        if (clients.some((client) => client.focused && client.visibilityState === 'visible')) {
+          return
+        }
+      }
+
+      await self.registration.showNotification(title, {
+        body: data.body || '',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        tag: data.tag || undefined,
+        data: { url },
+      })
+    })(),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const target = new URL(event.notification.data?.url || '/', self.location.origin).href
+
+  event.waitUntil(
+    (async () => {
+      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      for (const client of clients) {
+        if ('focus' in client) {
+          await client.focus()
+          if ('navigate' in client) await client.navigate(target)
+          return
+        }
+      }
+      await self.clients.openWindow(target)
+    })(),
+  )
+})

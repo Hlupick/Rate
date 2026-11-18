@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { Bell, Volume2, VolumeX } from 'lucide-react'
 import { isSoundEnabled, setSoundEnabled, unlockNotificationSound } from '@/lib/notify-sound'
 import { cn } from '@/lib/utils'
@@ -150,9 +151,16 @@ export function ChatSettings() {
           </button>
 
           <p className="mt-2 text-[10.5px] leading-snug text-dim">
-            Системные работают, пока сайт открыт в фоне. Звук настраивается отдельно на этом
+            Эти уведомления работают, пока сайт открыт. Звук настраивается отдельно на этом
             устройстве.
           </p>
+          <Link
+            href="/settings#notifications"
+            onClick={() => setOpen(false)}
+            className="mt-2 block text-[11px] font-medium text-amber-200 transition hover:text-amber-100"
+          >
+            Фоновые push-уведомления →
+          </Link>
           {error && <p className="mt-1.5 text-[10.5px] leading-snug text-amber-300">{error}</p>}
         </div>
       )}
