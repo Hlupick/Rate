@@ -10,6 +10,7 @@ import {
   createInvite,
   deleteInvite,
   deleteTrackAsAdmin,
+  listAdminUsers,
   setReportStatus,
   setUserFlags,
 } from '@/lib/queries'
@@ -48,10 +49,12 @@ export async function setUserFlagAction(formData: FormData) {
   const value = String(formData.get('value') ?? '') === '1'
   if (!userId) return
 
-  if (field === 'isAdmin' && !value && userId === admin.id) {
-    // Do not let the last admin remove their own rights by accident.
-    return
+  if (field === 'isAdmin' && !value) {
+    const admins = listAdminUsers().filter((row) => row.isAdmin)
+    // Never leave the site without an administrator (including self-demotion).
+    if (admins.length <= 1) return
   }
+  if (field === 'isBanned' && value && userId === admin.id) return
 
   if (field === 'canUpload' || field === 'isAdmin' || field === 'isBanned') {
     setUserFlags(userId, { [field]: value })
