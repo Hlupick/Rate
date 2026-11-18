@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   description: 'monah как отдельное приложение на Android: скачайте APK и слушайте музыку в фоне.',
 }
 
+// The APK lives on the storage volume and can be replaced without a rebuild.
+export const dynamic = 'force-dynamic'
+
 function formatSize(bytes: number): string {
   const mb = bytes / (1024 * 1024)
   return `${mb >= 10 ? Math.round(mb) : mb.toFixed(1)} МБ`
