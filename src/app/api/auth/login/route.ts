@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { createSession } from '@/lib/auth'
-import { getUserByLogin } from '@/lib/queries'
+import { getUserByLogin, setUserFlags } from '@/lib/queries'
 import { clientIp, rateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: Request) {
@@ -32,6 +32,14 @@ export async function POST(request: Request) {
   }
   if (user.isBanned) {
     return NextResponse.json({ error: 'Аккаунт заблокирован' }, { status: 403 })
+  }
+
+  // ADMIN_EMAIL always maps to an administrator, even if the account existed before.
+  const adminEmail = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase()
+  if (adminEmail && user.email.toLowerCase() === adminEmail) {
+    if (!user.isAdmin || !user.canUpload) {
+      setUserFlags(user.id, { isAdmin: true, canUpload: true })
+    }
   }
 
   await createSession(user.id)
