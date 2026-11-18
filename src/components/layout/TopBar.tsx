@@ -13,6 +13,7 @@ type TopBarProps = {
     displayName: string
     username: string
     avatar?: string | null
+    avatarFrame?: string | null
     isAdmin?: boolean
   } | null
 }
@@ -81,6 +82,7 @@ export function TopBar({ user }: TopBarProps) {
                   <Avatar
                     name={user.displayName}
                     src={user.avatar}
+                    frame={user.avatarFrame}
                     className="h-8 w-8"
                     textClassName="text-[10px]"
                   />

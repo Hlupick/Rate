@@ -75,6 +75,7 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
                     <Avatar
                       name={owner.displayName}
                       src={owner.avatar}
+                      frame={owner.avatarFrame}
                       className="h-5 w-5"
                       textClassName="text-[8px]"
                     />

@@ -1,5 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
+import { clampAvatarFrame } from './avatar-frame'
 import { db } from './db'
+import { WELCOME_POINTS, grantPoints } from './points'
 import { clampStatusColor } from './status'
 import type {
   AdminUserRow,
@@ -25,6 +27,7 @@ function mapUser(row: Row): UserRecord {
     statusColor: clampStatusColor(row.status_color ? String(row.status_color) : null),
     avatar: row.avatar ? String(row.avatar) : null,
     cover: row.cover ? String(row.cover) : null,
+    avatarFrame: clampAvatarFrame(row.avatar_frame ? String(row.avatar_frame) : null),
     createdAt: Number(row.created_at),
     canUpload: Number(row.can_upload ?? 0) === 1,
     isAdmin: Number(row.is_admin ?? 0) === 1,
@@ -126,6 +129,7 @@ export function createUser(input: {
     isAdmin ? 1 : 0,
     Date.now(),
   )
+  grantPoints(id, 'welcome', WELCOME_POINTS, 'welcome')
   return getUserById(id)!
 }
 
@@ -150,12 +154,13 @@ export function updateUserProfile(
     statusColor?: string | null
     avatar?: string | null
     cover?: string | null
+    avatarFrame?: string | null
   },
 ): UserPublic | null {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as Row | undefined
   if (!user) return null
   db.prepare(
-    'UPDATE users SET display_name = ?, bio = ?, status = ?, status_color = ?, avatar = ?, cover = ? WHERE id = ?',
+    'UPDATE users SET display_name = ?, bio = ?, status = ?, status_color = ?, avatar = ?, cover = ?, avatar_frame = ? WHERE id = ?',
   ).run(
     patch.displayName?.trim() || String(user.display_name),
     patch.bio === undefined ? user.bio : patch.bio,
@@ -163,6 +168,7 @@ export function updateUserProfile(
     patch.statusColor === undefined ? user.status_color : patch.statusColor,
     patch.avatar === undefined ? user.avatar : patch.avatar,
     patch.cover === undefined ? user.cover : patch.cover,
+    patch.avatarFrame === undefined ? user.avatar_frame : clampAvatarFrame(patch.avatarFrame),
     id,
   )
   return getUserById(id)

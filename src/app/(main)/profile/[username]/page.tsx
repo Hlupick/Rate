@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { Headphones } from 'lucide-react'
+import { Headphones, Sparkles } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
+import { getOwnedFrames } from '@/lib/frames'
+import { getUserPoints } from '@/lib/points'
 import { getPlaylistsByOwner, getListeningSeconds, getUserByUsername, listTracks } from '@/lib/queries'
 import { CardGrid, SectionHeader } from '@/components/ui/Section'
 import { PlaylistCard } from '@/components/ui/cards'
@@ -40,6 +42,8 @@ export default async function ProfilePage({
   const isSelf = viewer?.id === profile.id
   const totalPlays = uploads.reduce((acc, track) => acc + track.playCount, 0)
   const listeningSeconds = getListeningSeconds(profile.id)
+  const points = isSelf ? getUserPoints(profile.id) : 0
+  const ownedFrames = isSelf ? getOwnedFrames(profile.id) : []
 
   return (
     <div>
@@ -53,6 +57,9 @@ export default async function ProfilePage({
           <Avatar
             name={profile.displayName}
             src={profile.avatar}
+            frame={profile.avatarFrame}
+            frameScale="lg"
+            animated
             className="h-36 w-36 md:h-44 md:w-44"
             textClassName="text-4xl"
           />
@@ -69,17 +76,30 @@ export default async function ProfilePage({
               @{profile.username} · загрузок: {uploads.length} · прослушиваний:{' '}
               {formatCount(totalPlays)}
             </p>
-            {listeningSeconds > 0 && (
-              <div className="mt-3 flex justify-center md:justify-start">
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3.5 py-1.5 backdrop-blur-md">
-                  <Headphones size={14} className="text-amber-300" aria-hidden />
-                  <span className="text-sm font-bold tabular-nums text-amber-100">
-                    {formatTotalDuration(listeningSeconds)}
+            {(listeningSeconds > 0 || isSelf) && (
+              <div className="mt-3 flex flex-wrap justify-center gap-2 md:justify-start">
+                {listeningSeconds > 0 && (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3.5 py-1.5 backdrop-blur-md">
+                    <Headphones size={14} className="text-amber-300" aria-hidden />
+                    <span className="text-sm font-bold tabular-nums text-amber-100">
+                      {formatTotalDuration(listeningSeconds)}
+                    </span>
+                    <span className="text-[11px] font-medium uppercase tracking-wide text-amber-200/70">
+                      в музыке
+                    </span>
                   </span>
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-amber-200/70">
-                    в музыке
+                )}
+                {isSelf && (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3.5 py-1.5 backdrop-blur-md">
+                    <Sparkles size={14} className="text-amber-300" aria-hidden />
+                    <span className="text-sm font-bold tabular-nums text-amber-100">
+                      {formatCount(points)}
+                    </span>
+                    <span className="text-[11px] font-medium uppercase tracking-wide text-amber-200/70">
+                      баллов
+                    </span>
                   </span>
-                </span>
+                )}
               </div>
             )}
             {profile.bio && <p className="mt-2 max-w-xl text-sm text-muted">{profile.bio}</p>}
@@ -92,6 +112,9 @@ export default async function ProfilePage({
                   statusColor={profile.statusColor}
                   avatar={profile.avatar}
                   cover={profile.cover}
+                  avatarFrame={profile.avatarFrame}
+                  points={points}
+                  ownedFrames={ownedFrames}
                 />
                 <Link
                   href="/upload"

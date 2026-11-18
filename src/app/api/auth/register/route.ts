@@ -6,10 +6,10 @@ import { clientIp, rateLimit } from '@/lib/rate-limit'
 import { isMailConfigured, sendMail, verificationLetter } from '@/lib/mail'
 import { CODE_TTL_MS, RESEND_COOLDOWN_MS, generateCode, hashCode } from '@/lib/verification'
 import { deleteEmailVerification, getEmailVerification, saveEmailVerification } from '@/lib/verification-queries'
+import { checkUsernameFormat } from '@/lib/username'
 
 export const runtime = 'nodejs'
 
-const USERNAME_RE = /^[a-z0-9_]{3,24}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export async function POST(request: Request) {
@@ -34,18 +34,18 @@ export async function POST(request: Request) {
   }
 
   const displayName = (body.displayName ?? '').trim()
-  const username = (body.username ?? '').trim().toLowerCase()
+  const usernameCheck = checkUsernameFormat(
+    typeof body.username === 'string' ? body.username : '',
+  )
+  const username = usernameCheck.ok ? usernameCheck.username : ''
   const email = (body.email ?? '').trim().toLowerCase()
   const password = body.password ?? ''
 
   if (displayName.length < 2) {
     return NextResponse.json({ error: 'Имя слишком короткое' }, { status: 400 })
   }
-  if (!USERNAME_RE.test(username)) {
-    return NextResponse.json(
-      { error: 'Имя пользователя: 3–24 символа, латиница, цифры и _' },
-      { status: 400 },
-    )
+  if (!usernameCheck.ok) {
+    return NextResponse.json({ error: usernameCheck.error }, { status: 400 })
   }
   if (!EMAIL_RE.test(email)) {
     return NextResponse.json({ error: 'Проверьте e-mail' }, { status: 400 })
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Этот e-mail уже занят' }, { status: 409 })
   }
   if (getUserByLogin(username)) {
-    return NextResponse.json({ error: 'Такое имя пользователя уже есть' }, { status: 409 })
+    return NextResponse.json({ error: 'Этот ник уже занят' }, { status: 409 })
   }
 
   const passwordHash = bcrypt.hashSync(password, 10)

@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS users (
   status_color TEXT,
   avatar TEXT,
   cover TEXT,
+  avatar_frame TEXT,
+  points INTEGER NOT NULL DEFAULT 0,
   can_upload INTEGER NOT NULL DEFAULT 0,
   is_admin INTEGER NOT NULL DEFAULT 0,
   is_banned INTEGER NOT NULL DEFAULT 0,
@@ -91,6 +93,37 @@ CREATE TABLE IF NOT EXISTS listening_days (
   PRIMARY KEY (user_id, day)
 );
 
+CREATE TABLE IF NOT EXISTS user_frames (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  frame TEXT NOT NULL,
+  price INTEGER NOT NULL DEFAULT 0,
+  acquired_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, frame)
+);
+
+CREATE TABLE IF NOT EXISTS point_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  ref TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  UNIQUE (user_id, kind, ref)
+);
+
+CREATE TABLE IF NOT EXISTS point_days (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day TEXT NOT NULL,
+  seconds INTEGER NOT NULL DEFAULT 0,
+  awarded INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, day)
+);
+
+CREATE TABLE IF NOT EXISTS meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS invites (
   id TEXT PRIMARY KEY,
   code TEXT NOT NULL UNIQUE,
@@ -143,6 +176,7 @@ CREATE INDEX IF NOT EXISTS idx_tracks_play_count ON tracks(play_count);
 CREATE INDEX IF NOT EXISTS idx_plays_user ON plays(user_id, played_at);
 CREATE INDEX IF NOT EXISTS idx_plays_track_user ON plays(track_id, user_id, played_at);
 CREATE INDEX IF NOT EXISTS idx_listening_days_user ON listening_days(user_id, day);
+CREATE INDEX IF NOT EXISTS idx_point_events_user ON point_events(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_playlist_tracks ON playlist_tracks(playlist_id, position);
 CREATE INDEX IF NOT EXISTS idx_playlist_tracks_track ON playlist_tracks(track_id);
 CREATE INDEX IF NOT EXISTS idx_playlists_owner ON playlists(owner_id);
@@ -172,6 +206,8 @@ function createDb() {
     'ALTER TABLE users ADD COLUMN status TEXT',
     'ALTER TABLE users ADD COLUMN status_color TEXT',
     'ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE users ADD COLUMN avatar_frame TEXT',
+    'ALTER TABLE users ADD COLUMN points INTEGER NOT NULL DEFAULT 0',
     // Playlist import was removed; drop the placeholder table it left behind.
     'DROP TABLE IF EXISTS playlist_drafts',
   ]
@@ -181,6 +217,29 @@ function createDb() {
     } catch {
       /* column already exists */
     }
+  }
+  // One-time starting balance so the people who were here before the point
+  // system existed can also try a premium frame. The marker row is written
+  // even when there are no users yet, so accounts created later only get the
+  // normal welcome bonus.
+  const legacyGranted = db
+    .prepare("SELECT value FROM meta WHERE key = 'legacy_points_v1'")
+    .get()
+  if (!legacyGranted) {
+    const now = Date.now()
+    const users = db.prepare('SELECT id FROM users').all() as { id: string }[]
+    for (const user of users) {
+      const inserted = db
+        .prepare(
+          `INSERT OR IGNORE INTO point_events (user_id, kind, amount, ref, created_at)
+           VALUES (?, 'legacy', 500, 'legacy', ?)`,
+        )
+        .run(user.id, now)
+      if (Number(inserted.changes) > 0) {
+        db.prepare('UPDATE users SET points = points + 500 WHERE id = ?').run(user.id)
+      }
+    }
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('legacy_points_v1', '1')").run()
   }
   // Codes are short-lived; drop leftovers so the tables stay small.
   db.exec('DELETE FROM email_verifications WHERE expires_at < ' + Date.now())

@@ -15,6 +15,8 @@ import {
   userTrackFileNames,
 } from '@/lib/queries'
 import { clientIp, rateLimit } from '@/lib/rate-limit'
+import { clampAvatarFrame } from '@/lib/avatar-frame'
+import { ownsFrame } from '@/lib/frames'
 import { clampStatus, clampStatusColor } from '@/lib/status'
 
 export const runtime = 'nodejs'
@@ -30,6 +32,7 @@ export async function PATCH(request: Request) {
     statusColor?: string | null
     avatar?: string | null
     cover?: string | null
+    avatarFrame?: string | null
   }
   try {
     body = await request.json()
@@ -41,6 +44,13 @@ export async function PATCH(request: Request) {
     const value = body[field]
     if (value !== undefined && value !== null && !isValidImageName(value)) {
       return NextResponse.json({ error: 'Некорректное изображение' }, { status: 400 })
+    }
+  }
+
+  if (body.avatarFrame !== undefined) {
+    const frame = clampAvatarFrame(body.avatarFrame)
+    if (!ownsFrame(user.id, frame)) {
+      return NextResponse.json({ error: 'Сначала купите этот ободок' }, { status: 403 })
     }
   }
 
@@ -65,6 +75,8 @@ export async function PATCH(request: Request) {
         : clampStatusColor(body.statusColor),
     avatar: body.avatar === undefined ? undefined : body.avatar,
     cover: body.cover === undefined ? undefined : body.cover,
+    avatarFrame:
+      body.avatarFrame === undefined ? undefined : clampAvatarFrame(body.avatarFrame),
   }
   if (patch.displayName !== undefined && patch.displayName.length < 2) {
     return NextResponse.json({ error: 'Имя слишком короткое' }, { status: 400 })

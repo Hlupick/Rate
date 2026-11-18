@@ -1,3 +1,4 @@
+import type { AvatarFrame } from './avatar-frame'
 import type { StatusColor } from './status'
 
 export type UserPublic = {
@@ -10,6 +11,7 @@ export type UserPublic = {
   statusColor: StatusColor
   avatar: string | null
   cover: string | null
+  avatarFrame: AvatarFrame
   createdAt: number
   canUpload: boolean
   isAdmin: boolean

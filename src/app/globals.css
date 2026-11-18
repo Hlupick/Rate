@@ -278,3 +278,170 @@ textarea {
   }
 }
 
+/* ------------------------------- avatar frames ----------------------------- */
+
+@property --frame-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* A gradient ring drawn outside the avatar, so no layout ever shifts. */
+.avatar-frame::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  padding: 2px;
+  background: var(--frame-paint, linear-gradient(140deg, #fff, rgba(255, 255, 255, 0.2)));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.avatar-frame-lg::after {
+  inset: -6px;
+  padding: 3px;
+}
+
+.frame-frost {
+  --frame-paint: linear-gradient(
+    145deg,
+    #ffffff 0%,
+    rgba(255, 255, 255, 0.18) 42%,
+    rgba(255, 255, 255, 0.72) 100%
+  );
+}
+.frame-frost::after {
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.35));
+}
+
+.frame-mint {
+  --frame-paint: linear-gradient(145deg, #a7f3d0, #10b981 55%, #065f46);
+}
+.frame-mint::after {
+  filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.35));
+}
+
+.frame-ocean {
+  --frame-paint: linear-gradient(145deg, #7dd3fc, #0ea5e9 50%, #1e3a8a);
+}
+.frame-ocean::after {
+  filter: drop-shadow(0 0 5px rgba(14, 165, 233, 0.4));
+}
+
+.frame-ember {
+  --frame-paint: linear-gradient(145deg, #fde68a, #f97316 45%, #7f1d1d);
+}
+.frame-ember::after {
+  filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.4));
+}
+
+.frame-mono {
+  --frame-paint: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.22));
+}
+.frame-mono::after {
+  padding: 1px;
+}
+.frame-mono::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+}
+
+.frame-aurora {
+  --frame-paint: conic-gradient(
+    from var(--frame-angle),
+    #c084fc,
+    #22d3ee,
+    #818cf8,
+    #a7f3d0,
+    #c084fc
+  );
+}
+.frame-aurora::after {
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.4));
+}
+
+.frame-neon {
+  --frame-paint: conic-gradient(from var(--frame-angle), #f472b6, #818cf8, #22d3ee, #f472b6);
+}
+.frame-neon::after {
+  filter: drop-shadow(0 0 6px rgba(244, 114, 182, 0.55))
+    drop-shadow(0 0 14px rgba(34, 211, 238, 0.35));
+}
+
+.frame-gold {
+  --frame-paint: conic-gradient(
+    from var(--frame-angle),
+    #fde68a,
+    #b45309,
+    #fbbf24,
+    #92400e,
+    #fde68a
+  );
+}
+.frame-gold::after {
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.5));
+}
+.frame-gold::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: inherit;
+  border: 1px solid rgba(253, 230, 138, 0.45);
+  pointer-events: none;
+}
+
+.frame-prism {
+  --frame-paint: conic-gradient(
+    from var(--frame-angle),
+    #f87171,
+    #fbbf24,
+    #4ade80,
+    #22d3ee,
+    #818cf8,
+    #e879f9,
+    #f87171
+  );
+}
+.frame-prism::after {
+  filter: saturate(1.2) drop-shadow(0 0 7px rgba(232, 121, 249, 0.35));
+}
+
+@keyframes frame-spin {
+  to {
+    --frame-angle: 360deg;
+  }
+}
+
+.avatar-frame-animated.frame-aurora::after {
+  animation: frame-spin 8s linear infinite;
+}
+.avatar-frame-animated.frame-neon::after {
+  animation: frame-spin 9s linear infinite reverse;
+}
+.avatar-frame-animated.frame-gold::after {
+  animation: frame-spin 11s linear infinite;
+}
+.avatar-frame-animated.frame-prism::after {
+  animation: frame-spin 10s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-frame::after,
+  .avatar-frame::before {
+    animation: none !important;
+  }
+}
+
+

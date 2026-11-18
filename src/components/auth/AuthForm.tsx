@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
+import { checkUsernameFormat } from '@/lib/username'
 
 export function AuthForm({
   mode,
@@ -25,12 +26,62 @@ export function AuthForm({
   const [step, setStep] = useState<'details' | 'code'>('details')
   const [code, setCode] = useState('')
   const [cooldown, setCooldown] = useState(0)
+  const [usernameState, setUsernameState] = useState<{
+    status: 'idle' | 'checking' | 'ok' | 'error'
+    message: string
+  }>({ status: 'idle', message: '' })
 
   useEffect(() => {
     if (cooldown <= 0) return
     const timer = setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000)
     return () => clearInterval(timer)
   }, [cooldown])
+
+  // Check the nickname while the person types: format first, availability next.
+  useEffect(() => {
+    if (mode !== 'register' || step !== 'details') return
+    const value = username.trim()
+    if (!value) {
+      setUsernameState({ status: 'idle', message: '' })
+      return
+    }
+    const format = checkUsernameFormat(value)
+    if (!format.ok) {
+      setUsernameState({ status: 'error', message: format.error })
+      return
+    }
+
+    setUsernameState({ status: 'checking', message: 'Проверяем…' })
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      fetch(`/api/auth/username?u=${encodeURIComponent(format.username)}`, {
+        signal: controller.signal,
+      })
+        .then(async (response) => {
+          const data = (await response.json().catch(() => ({}))) as {
+            available?: boolean
+            error?: string
+          }
+          if (data.available) {
+            setUsernameState({ status: 'ok', message: 'Ник свободен' })
+          } else {
+            setUsernameState({
+              status: 'error',
+              message: data.error ?? 'Этот ник уже занят',
+            })
+          }
+        })
+        .catch((err: unknown) => {
+          if (!(err instanceof DOMException && err.name === 'AbortError')) {
+            setUsernameState({ status: 'idle', message: '' })
+          }
+        })
+    }, 400)
+    return () => {
+      controller.abort()
+      clearTimeout(timer)
+    }
+  }, [username, mode, step])
 
   async function post(url: string, payload: Record<string, string>) {
     const response = await fetch(url, {
@@ -134,12 +185,26 @@ export function AuthForm({
               <input
                 value={username}
                 onChange={(event) => setUsername(event.target.value.toLowerCase())}
-                placeholder="stas"
-                pattern="[a-z0-9_]{3,24}"
-                title="3–24 символа: латиница, цифры, подчёркивание"
+                placeholder="stanislav"
+                pattern="[a-z0-9]{5,14}"
+                title="5–14 символов: латинские буквы и цифры"
+                autoComplete="username"
                 required
                 className="input"
               />
+              <span
+                className={`mt-1.5 block text-[11px] leading-relaxed ${
+                  usernameState.status === 'ok'
+                    ? 'text-emerald-300'
+                    : usernameState.status === 'error'
+                      ? 'text-red-300'
+                      : 'text-muted'
+                }`}
+              >
+                {usernameState.status === 'idle'
+                  ? '5–14 символов: латинские буквы и цифры. Ник останется с вами навсегда.'
+                  : usernameState.message}
+              </span>
             </Field>
             <Field label="E-mail">
               <input

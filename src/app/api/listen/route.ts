@@ -10,6 +10,7 @@ import {
   shiftDay,
 } from '@/lib/queries'
 import { rateLimit } from '@/lib/rate-limit'
+import { addListeningPoints } from '@/lib/points'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
 
   const before = getStreak(user.id, day)
   addListeningTime(user.id, day, seconds)
+  const points = addListeningPoints(user.id, day, seconds)
   const after = getStreak(user.id, day)
 
   const extended =
@@ -62,5 +64,6 @@ export async function POST(request: Request) {
     goal: STREAK_GOAL_SECONDS,
     extended,
     milestone,
+    points,
   })
 }

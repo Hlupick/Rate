@@ -8,6 +8,7 @@ import { TRACKS_DIR } from '@/lib/db'
 import { createTrack, userUploadStats } from '@/lib/queries'
 import { QUOTAS, diskFreeBytes, formatBytes } from '@/lib/storage'
 import { rateLimit } from '@/lib/rate-limit'
+import { addUploadPoints } from '@/lib/points'
 import { splitFileName, tagValue } from '@/lib/track-names'
 
 export const runtime = 'nodejs'
@@ -149,6 +150,8 @@ export async function POST(request: Request) {
     size: buffer.length,
     uploaderId: user.id,
   })
+
+  addUploadPoints(user.id, track.id)
 
   return NextResponse.json({ track })
 }

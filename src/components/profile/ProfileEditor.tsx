@@ -2,10 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil } from 'lucide-react'
+import { Lock, Pencil, Sparkles } from 'lucide-react'
+import { Avatar } from '@/components/ui/Avatar'
 import { Modal } from '@/components/ui/Modal'
 import { ImagePicker } from '@/components/ui/ImagePicker'
 import { StatusPill } from '@/components/profile/StatusPill'
+import { AVATAR_FRAMES, avatarFrameTheme, clampAvatarFrame, type AvatarFrame } from '@/lib/avatar-frame'
+import { formatCount } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { STATUS_COLORS, STATUS_MAX_LENGTH, clampStatus, countStatusChars, limitStatusChars, statusColorTheme } from '@/lib/status'
 
@@ -16,6 +19,9 @@ export function ProfileEditor({
   statusColor,
   avatar,
   cover,
+  avatarFrame,
+  points,
+  ownedFrames,
 }: {
   displayName: string
   bio: string | null
@@ -23,6 +29,9 @@ export function ProfileEditor({
   statusColor: string
   avatar: string | null
   cover: string | null
+  avatarFrame: string
+  points: number
+  ownedFrames: string[]
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -32,8 +41,54 @@ export function ProfileEditor({
   const [tint, setTint] = useState(statusColor)
   const [newAvatar, setNewAvatar] = useState(avatar)
   const [newCover, setNewCover] = useState(cover)
+  const [frame, setFrame] = useState<AvatarFrame>(clampAvatarFrame(avatarFrame))
+  const [balance, setBalance] = useState(points)
+  const [owned, setOwned] = useState<string[]>(ownedFrames)
+  const [pendingBuy, setPendingBuy] = useState<AvatarFrame | null>(null)
+  const [buying, setBuying] = useState(false)
+  const [buyError, setBuyError] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+
+  function chooseFrame(theme: (typeof AVATAR_FRAMES)[number]) {
+    const locked = theme.tier === 'premium' && !owned.includes(theme.key)
+    if (locked) {
+      setBuyError('')
+      setPendingBuy(theme.key)
+      return
+    }
+    setPendingBuy(null)
+    setBuyError('')
+    setFrame(theme.key)
+  }
+
+  async function buy() {
+    if (!pendingBuy || buying) return
+    setBuying(true)
+    setBuyError('')
+    try {
+      const response = await fetch('/api/frames/buy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ frame: pendingBuy }),
+      })
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string
+        points?: number
+        owned?: string[]
+      }
+      if (!response.ok) throw new Error(data.error ?? 'Не удалось купить ободок')
+      if (typeof data.points === 'number') setBalance(data.points)
+      if (Array.isArray(data.owned)) setOwned(data.owned)
+      setFrame(pendingBuy)
+      setPendingBuy(null)
+      router.refresh()
+    } catch (err) {
+      setBuyError(err instanceof Error ? err.message : 'Не удалось купить ободок')
+    } finally {
+      setBuying(false)
+    }
+  }
 
   async function save() {
     if (name.trim().length < 2) return
@@ -50,6 +105,7 @@ export function ProfileEditor({
           statusColor: tint,
           avatar: newAvatar,
           cover: newCover,
+          avatarFrame: frame,
         }),
       })
       const data = (await response.json()) as { error?: string }
@@ -62,6 +118,9 @@ export function ProfileEditor({
       setBusy(false)
     }
   }
+
+  const pendingTheme = pendingBuy ? avatarFrameTheme(pendingBuy) : null
+  const shortfall = pendingTheme ? Math.max(0, pendingTheme.price - balance) : 0
 
   return (
     <>
@@ -82,6 +141,119 @@ export function ProfileEditor({
               value={newAvatar}
               onChange={setNewAvatar}
             />
+
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs font-medium text-muted">Ободок аватара</span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-200">
+                  <Sparkles size={12} /> {formatCount(balance)} баллов
+                </span>
+              </div>
+              <div className="grid grid-cols-5 gap-1.5">
+                {AVATAR_FRAMES.map((theme) => {
+                  const locked = theme.tier === 'premium' && !owned.includes(theme.key)
+                  const active = frame === theme.key
+                  return (
+                    <button
+                      key={theme.key}
+                      type="button"
+                      onClick={() => chooseFrame(theme)}
+                      aria-pressed={active}
+                      title={
+                        locked
+                          ? `${theme.label} — ${formatCount(theme.price)} баллов`
+                          : theme.label
+                      }
+                      className={cn(
+                        'flex flex-col items-center gap-1 rounded-lg px-1 py-2 transition',
+                        active ? 'bg-white/10 ring-1 ring-inset ring-white/20' : 'hover:bg-white/5',
+                      )}
+                    >
+                      <span className="relative">
+                        <Avatar
+                          name={name || 'Rate'}
+                          src={newAvatar}
+                          frame={theme.key}
+                          className="h-10 w-10"
+                          textClassName="text-[10px]"
+                        />
+                        {locked && (
+                          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-black ring-1 ring-white/25">
+                            <Lock size={9} className="text-amber-200" />
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className={cn(
+                          'w-full truncate text-center text-[10px] font-medium leading-tight',
+                          active ? 'text-ink' : 'text-muted',
+                        )}
+                      >
+                        {theme.key === 'none' ? 'Без' : theme.label}
+                      </span>
+                      <span
+                        className={cn(
+                          'h-3 text-[9px] leading-none',
+                          theme.tier === 'premium'
+                            ? locked
+                              ? 'text-amber-200/80'
+                              : 'text-emerald-300/80'
+                            : 'text-transparent',
+                        )}
+                      >
+                        {theme.tier === 'premium'
+                          ? locked
+                            ? `${formatCount(theme.price)} б.`
+                            : 'куплен'
+                          : '·'}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {pendingTheme && (
+                <div className="rounded-lg border border-white/10 bg-black/40 p-3">
+                  <p className="text-xs font-medium">
+                    Купить «{pendingTheme.label}» за {formatCount(pendingTheme.price)} баллов?
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    Останется {formatCount(Math.max(0, balance - pendingTheme.price))} баллов.
+                    Ободок останется навсегда.
+                  </p>
+                  {shortfall > 0 && (
+                    <p className="mt-1 text-[11px] text-amber-300">
+                      Не хватает {formatCount(shortfall)} баллов. Послушайте музыку или загрузите
+                      трек.
+                    </p>
+                  )}
+                  {buyError && <p className="mt-1 text-[11px] text-red-400">{buyError}</p>}
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void buy()}
+                      disabled={buying || shortfall > 0}
+                      className="rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-black transition hover:bg-white disabled:opacity-40"
+                    >
+                      {buying ? 'Покупаем…' : 'Купить'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPendingBuy(null)}
+                      className="rounded-full px-3 py-1.5 text-xs text-muted transition hover:text-ink"
+                    >
+                      Не сейчас
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <p className="text-[11px] leading-relaxed text-muted">
+                Пять ободков бесплатны. Премиальные открываются за баллы: 1 балл за минуту
+                прослушивания и 40 баллов за загруженный трек.
+              </p>
+            </div>
+
             <ImagePicker
               label="Обложка профиля"
               shape="banner"

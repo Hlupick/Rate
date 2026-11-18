@@ -122,6 +122,7 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
                         <Avatar
                           name={uploader.displayName}
                           src={uploader.avatar}
+                          frame={uploader.avatarFrame}
                           className="h-5 w-5"
                           textClassName="text-[8px]"
                         />
