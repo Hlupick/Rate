@@ -73,11 +73,11 @@ export function ImportPlaylistForm() {
         body: JSON.stringify({ url: url.trim() }),
       })
       const data = (await response.json().catch(() => ({}))) as UrlPreview & { error?: string }
-      if (!response.ok) throw new Error(data.error ?? 'Не удалось прочитать плейлист')
+      if (!response.ok) throw new Error(data.error ?? 'РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕС‡РёС‚Р°С‚СЊ РїР»РµР№Р»РёСЃС‚')
       setPreview(data)
       if (data.existingPlaylistId) setExistingId(data.existingPlaylistId)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка')
+      setError(err instanceof Error ? err.message : 'РћС€РёР±РєР°')
     } finally {
       setPreviewBusy(false)
     }
@@ -89,7 +89,7 @@ export function ImportPlaylistForm() {
 
     if (mode === 'url') {
       if (!preview) {
-        setError('Сначала проверьте ссылку')
+        setError('РЎРЅР°С‡Р°Р»Р° РїСЂРѕРІРµСЂСЊС‚Рµ СЃСЃС‹Р»РєСѓ')
         return
       }
       if (preview.existingPlaylistId) {
@@ -98,11 +98,11 @@ export function ImportPlaylistForm() {
       }
     } else {
       if (!name.trim()) {
-        setError('Введите название плейлиста')
+        setError('Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ РїР»РµР№Р»РёСЃС‚Р°')
         return
       }
       if (rows.length === 0) {
-        setError('Не удалось распознать треки. Проверьте файл или список.')
+        setError('РќРµ СѓРґР°Р»РѕСЃСЊ СЂР°СЃРїРѕР·РЅР°С‚СЊ С‚СЂРµРєРё. РџСЂРѕРІРµСЂСЊС‚Рµ С„Р°Р№Р» РёР»Рё СЃРїРёСЃРѕРє.')
         return
       }
     }
@@ -136,12 +136,12 @@ export function ImportPlaylistForm() {
       }
       if (!response.ok) {
         if (data.playlistId) setExistingId(data.playlistId)
-        throw new Error(data.error ?? 'Не удалось импортировать')
+        throw new Error(data.error ?? 'РќРµ СѓРґР°Р»РѕСЃСЊ РёРјРїРѕСЂС‚РёСЂРѕРІР°С‚СЊ')
       }
       setResult(data)
       if (data.playlistId) router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка импорта')
+      setError(err instanceof Error ? err.message : 'РћС€РёР±РєР° РёРјРїРѕСЂС‚Р°')
     } finally {
       setBusy(false)
     }
@@ -150,7 +150,7 @@ export function ImportPlaylistForm() {
   async function copyMissing() {
     if (!result) return
     const value = result.missing
-      .map((row) => `${row.title}${row.artist ? ` — ${row.artist}` : ''}`)
+      .map((row) => `${row.title}${row.artist ? ` вЂ” ${row.artist}` : ''}`)
       .join('\n')
     try {
       await navigator.clipboard.writeText(value)
@@ -194,11 +194,11 @@ export function ImportPlaylistForm() {
               )}
             </div>
             <div className="min-w-0">
-              <h2 className="text-lg font-bold">Плейлист создан</h2>
+              <h2 className="text-lg font-bold">РџР»РµР№Р»РёСЃС‚ СЃРѕР·РґР°РЅ</h2>
               <p className="mt-1 text-sm text-muted">
-                Распознано {result.total} треков, добавлено {result.matched}, не загружено{' '}
-                {result.missing.length}. Недостающие сохранены в плейлисте — когда появятся файлы,
-                нажмите там «Проверить снова».
+                Р Р°СЃРїРѕР·РЅР°РЅРѕ {result.total} С‚СЂРµРєРѕРІ, РґРѕР±Р°РІР»РµРЅРѕ {result.matched}, РЅРµ Р·Р°РіСЂСѓР¶РµРЅРѕ{' '}
+                {result.missing.length}. РќРµРґРѕСЃС‚Р°СЋС‰РёРµ СЃРѕС…СЂР°РЅРµРЅС‹ РІ РїР»РµР№Р»РёСЃС‚Рµ вЂ” РєРѕРіРґР° РїРѕСЏРІСЏС‚СЃСЏ С„Р°Р№Р»С‹,
+                РЅР°Р¶РјРёС‚Рµ С‚Р°Рј В«РџСЂРѕРІРµСЂРёС‚СЊ СЃРЅРѕРІР°В».
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {result.playlistId && (
@@ -206,20 +206,20 @@ export function ImportPlaylistForm() {
                     href={`/playlist/${result.playlistId}`}
                     className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-black transition hover:bg-white"
                   >
-                    Открыть плейлист
+                    РћС‚РєСЂС‹С‚СЊ РїР»РµР№Р»РёСЃС‚
                   </Link>
                 )}
                 <Link
                   href="/upload"
                   className="rounded-full border border-line px-4 py-2 text-sm font-medium text-muted transition hover:border-white/30 hover:text-ink"
                 >
-                  Загрузить недостающие
+                  Р—Р°РіСЂСѓР·РёС‚СЊ РЅРµРґРѕСЃС‚Р°СЋС‰РёРµ
                 </Link>
                 <button
                   onClick={reset}
                   className="rounded-full px-4 py-2 text-sm text-muted transition hover:text-ink"
                 >
-                  Импортировать ещё
+                  РРјРїРѕСЂС‚РёСЂРѕРІР°С‚СЊ РµС‰С‘
                 </button>
               </div>
             </div>
@@ -230,17 +230,17 @@ export function ImportPlaylistForm() {
           <div className="rounded-xl border border-line bg-card">
             <div className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-3">
               <div>
-                <div className="text-sm font-semibold">Не найдено в библиотеке</div>
+                <div className="text-sm font-semibold">РќРµ РЅР°Р№РґРµРЅРѕ РІ Р±РёР±Р»РёРѕС‚РµРєРµ</div>
                 <div className="text-xs text-muted">
-                  Записи сохранены в плейлисте как «не загружено». Загрузите файлы и нажмите
-                  «Проверить снова».
+                  Р—Р°РїРёСЃРё СЃРѕС…СЂР°РЅРµРЅС‹ РІ РїР»РµР№Р»РёСЃС‚Рµ РєР°Рє В«РЅРµ Р·Р°РіСЂСѓР¶РµРЅРѕВ». Р—Р°РіСЂСѓР·РёС‚Рµ С„Р°Р№Р»С‹ Рё РЅР°Р¶РјРёС‚Рµ
+                  В«РџСЂРѕРІРµСЂРёС‚СЊ СЃРЅРѕРІР°В».
                 </div>
               </div>
               <button
                 onClick={copyMissing}
                 className="rounded-md border border-line px-3 py-1.5 text-xs text-muted transition hover:border-white/30 hover:text-ink"
               >
-                {copied ? 'Скопировано' : 'Скопировать'}
+                {copied ? 'РЎРєРѕРїРёСЂРѕРІР°РЅРѕ' : 'РЎРєРѕРїРёСЂРѕРІР°С‚СЊ'}
               </button>
             </div>
             <ul className="max-h-80 overflow-y-auto px-4 py-3 text-sm">
@@ -249,7 +249,7 @@ export function ImportPlaylistForm() {
                   <span className="w-6 shrink-0 text-right text-dim">{index + 1}</span>
                   <span className="min-w-0">
                     <span className="text-ink">{row.title}</span>
-                    {row.artist && <span> — {row.artist}</span>}
+                    {row.artist && <span> вЂ” {row.artist}</span>}
                   </span>
                 </li>
               ))}
@@ -266,26 +266,26 @@ export function ImportPlaylistForm() {
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted">
-              Название плейлиста
+              РќР°Р·РІР°РЅРёРµ РїР»РµР№Р»РёСЃС‚Р°
             </span>
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
               maxLength={80}
-              placeholder="Например, Ночная поездка"
+              placeholder="РќР°РїСЂРёРјРµСЂ, РќРѕС‡РЅР°СЏ РїРѕРµР·РґРєР°"
               className="w-full rounded-md border border-line bg-panel-2 px-3 py-2.5 text-sm placeholder:text-dim focus:border-white/40"
             />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted">
-              Описание{' '}
-              <span className="normal-case tracking-normal text-dim">(необязательно)</span>
+              РћРїРёСЃР°РЅРёРµ{' '}
+              <span className="normal-case tracking-normal text-dim">(РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)</span>
             </span>
             <input
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               maxLength={200}
-              placeholder="Откуда плейлист и для чего"
+              placeholder="РћС‚РєСѓРґР° РїР»РµР№Р»РёСЃС‚ Рё РґР»СЏ С‡РµРіРѕ"
               className="w-full rounded-md border border-line bg-panel-2 px-3 py-2.5 text-sm placeholder:text-dim focus:border-white/40"
             />
           </label>
@@ -295,9 +295,9 @@ export function ImportPlaylistForm() {
       <div className="flex gap-1 border-b border-white/5">
         {(
           [
-            ['url', 'По ссылке'],
+            ['url', 'РџРѕ СЃСЃС‹Р»РєРµ'],
             ['file', 'CSV / M3U / JSON'],
-            ['list', 'Список строк'],
+            ['list', 'РЎРїРёСЃРѕРє СЃС‚СЂРѕРє'],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -329,7 +329,7 @@ export function ImportPlaylistForm() {
                 setPreview(null)
                 setExistingId(null)
               }}
-              placeholder="https://www.deezer.com/playlist/…"
+              placeholder="https://www.deezer.com/playlist/вЂ¦"
               className="min-w-0 flex-1 rounded-md border border-line bg-panel-2 px-3 py-2.5 text-sm placeholder:text-dim focus:border-white/40"
             />
             <button
@@ -339,11 +339,11 @@ export function ImportPlaylistForm() {
               className="flex items-center justify-center gap-2 rounded-full border border-line px-5 py-2 text-sm font-medium text-muted transition hover:border-white/30 hover:text-ink disabled:opacity-40"
             >
               {previewBusy && <Loader2 size={15} className="animate-spin" />}
-              {previewBusy ? 'Проверяем…' : 'Проверить ссылку'}
+              {previewBusy ? 'РџСЂРѕРІРµСЂСЏРµРјвЂ¦' : 'РџСЂРѕРІРµСЂРёС‚СЊ СЃСЃС‹Р»РєСѓ'}
             </button>
           </div>
           <p className="text-xs text-dim">
-            Переносятся только названия и исполнители. Аудио из Deezer не скачивается.
+            РџРµСЂРµРЅРѕСЃСЏС‚СЃСЏ С‚РѕР»СЊРєРѕ РЅР°Р·РІР°РЅРёСЏ Рё РёСЃРїРѕР»РЅРёС‚РµР»Рё. РђСѓРґРёРѕ РёР· Deezer РЅРµ СЃРєР°С‡РёРІР°РµС‚СЃСЏ.
           </p>
 
           {preview && (
@@ -371,18 +371,18 @@ export function ImportPlaylistForm() {
                   </div>
                   <div className="truncate text-lg font-bold">{preview.name}</div>
                   <div className="mt-0.5 text-xs text-muted">
-                    {preview.total} треков
-                    {preview.description ? ` · ${preview.description}` : ''}
+                    {preview.total} С‚СЂРµРєРѕРІ
+                    {preview.description ? ` В· ${preview.description}` : ''}
                   </div>
                   <ol className="mt-2 space-y-0.5 text-xs text-muted">
                     {preview.rows.slice(0, 5).map((row, index) => (
                       <li key={`${row.title}-${index}`} className="truncate">
                         {index + 1}. {row.title}
-                        {row.artist ? ` — ${row.artist}` : ''}
+                        {row.artist ? ` вЂ” ${row.artist}` : ''}
                       </li>
                     ))}
                     {preview.rows.length > 5 && (
-                      <li className="text-dim">и ещё {preview.rows.length - 5}…</li>
+                      <li className="text-dim">Рё РµС‰С‘ {preview.rows.length - 5}вЂ¦</li>
                     )}
                   </ol>
                 </div>
@@ -392,9 +392,9 @@ export function ImportPlaylistForm() {
 
           {existingId && (
             <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-sm text-amber-200/90">
-              Этот плейлист уже импортирован.{' '}
+              Р­С‚РѕС‚ РїР»РµР№Р»РёСЃС‚ СѓР¶Рµ РёРјРїРѕСЂС‚РёСЂРѕРІР°РЅ.{' '}
               <Link href={`/playlist/${existingId}`} className="underline">
-                Открыть его
+                РћС‚РєСЂС‹С‚СЊ РµРіРѕ
               </Link>
             </div>
           )}
@@ -406,7 +406,7 @@ export function ImportPlaylistForm() {
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex cursor-pointer items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-medium text-muted transition hover:border-white/30 hover:text-ink">
               <FileUp size={15} />
-              Выбрать файл
+              Р’С‹Р±СЂР°С‚СЊ С„Р°Р№Р»
               <input
                 type="file"
                 accept=".csv,.m3u,.m3u8,.json,.txt,text/csv,audio/x-mpegurl,application/json"
@@ -415,7 +415,7 @@ export function ImportPlaylistForm() {
               />
             </label>
             <span className="text-xs text-dim">
-              CSV из Exportify, M3U/M3U8 из плеера, JSON или TXT
+              CSV РёР· Exportify, M3U/M3U8 РёР· РїР»РµРµСЂР°, JSON РёР»Рё TXT
             </span>
           </div>
           <textarea
@@ -423,11 +423,11 @@ export function ImportPlaylistForm() {
             onChange={(event) => setText(event.target.value)}
             rows={8}
             placeholder={
-              '#EXTM3U\n#EXTINF:213,Monah Collective - Ночной трамвай\n\nили CSV:\nTrack Name,Artist Name(s)\nНочной трамвай,Monah Collective'
+              '#EXTM3U\n#EXTINF:213,Rate Collective - РќРѕС‡РЅРѕР№ С‚СЂР°РјРІР°Р№\n\nРёР»Рё CSV:\nTrack Name,Artist Name(s)\nРќРѕС‡РЅРѕР№ С‚СЂР°РјРІР°Р№,Rate Collective'
             }
             className="w-full resize-y rounded-md border border-line bg-panel-2 px-3 py-2.5 font-mono text-xs placeholder:text-dim focus:border-white/40"
           />
-          {fileName && <p className="text-xs text-dim">Файл: {fileName}</p>}
+          {fileName && <p className="text-xs text-dim">Р¤Р°Р№Р»: {fileName}</p>}
         </div>
       )}
 
@@ -438,13 +438,13 @@ export function ImportPlaylistForm() {
             onChange={(event) => setText(event.target.value)}
             rows={10}
             placeholder={
-              'Ночной трамвай — Monah Collective\nСтеклянный дождь — Vela\nГравитация'
+              'РќРѕС‡РЅРѕР№ С‚СЂР°РјРІР°Р№ вЂ” Rate Collective\nРЎС‚РµРєР»СЏРЅРЅС‹Р№ РґРѕР¶РґСЊ вЂ” Vela\nР“СЂР°РІРёС‚Р°С†РёСЏ'
             }
             className="w-full resize-y rounded-md border border-line bg-panel-2 px-3 py-2.5 text-sm placeholder:text-dim focus:border-white/40"
           />
           <p className="text-xs text-dim">
-            По одной строке: «Название — Исполнитель» или «Название&nbsp;Tab&nbsp;Исполнитель».
-            Исполнителя можно не указывать, если название в библиотеке уникально.
+            РџРѕ РѕРґРЅРѕР№ СЃС‚СЂРѕРєРµ: В«РќР°Р·РІР°РЅРёРµ вЂ” РСЃРїРѕР»РЅРёС‚РµР»СЊВ» РёР»Рё В«РќР°Р·РІР°РЅРёРµ&nbsp;Tab&nbsp;РСЃРїРѕР»РЅРёС‚РµР»СЊВ».
+            РСЃРїРѕР»РЅРёС‚РµР»СЏ РјРѕР¶РЅРѕ РЅРµ СѓРєР°Р·С‹РІР°С‚СЊ, РµСЃР»Рё РЅР°Р·РІР°РЅРёРµ РІ Р±РёР±Р»РёРѕС‚РµРєРµ СѓРЅРёРєР°Р»СЊРЅРѕ.
           </p>
         </div>
       )}
@@ -454,11 +454,11 @@ export function ImportPlaylistForm() {
           <Music4 size={16} />
           {mode === 'url'
             ? preview
-              ? `Распознано треков: ${preview.total}`
-              : 'Вставьте ссылку и проверьте её'
+              ? `Р Р°СЃРїРѕР·РЅР°РЅРѕ С‚СЂРµРєРѕРІ: ${preview.total}`
+              : 'Р’СЃС‚Р°РІСЊС‚Рµ СЃСЃС‹Р»РєСѓ Рё РїСЂРѕРІРµСЂСЊС‚Рµ РµС‘'
             : rows.length > 0
-              ? `Распознано треков: ${rows.length}`
-              : 'Треки пока не распознаны'}
+              ? `Р Р°СЃРїРѕР·РЅР°РЅРѕ С‚СЂРµРєРѕРІ: ${rows.length}`
+              : 'РўСЂРµРєРё РїРѕРєР° РЅРµ СЂР°СЃРїРѕР·РЅР°РЅС‹'}
         </div>
         <button
           type="submit"
@@ -466,7 +466,7 @@ export function ImportPlaylistForm() {
           className="flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-semibold text-black transition hover:bg-white disabled:opacity-40"
         >
           {busy && <Loader2 size={15} className="animate-spin" />}
-          {busy ? 'Импортируем…' : 'Импортировать'}
+          {busy ? 'РРјРїРѕСЂС‚РёСЂСѓРµРјвЂ¦' : 'РРјРїРѕСЂС‚РёСЂРѕРІР°С‚СЊ'}
         </button>
       </div>
 

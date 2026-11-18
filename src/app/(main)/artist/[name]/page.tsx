@@ -104,7 +104,7 @@ export default async function ArtistPage({ params }: { params: Promise<{ name: s
         )}
 
         <p className="mt-10 text-xs text-dim">
-          Все треки исполнителя добавлены слушателями monah.{' '}
+          Все треки исполнителя добавлены слушателями Rate.{' '}
           <Link href="/search" className="underline hover:text-muted">
             Найти похожее
           </Link>

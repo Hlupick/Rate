@@ -42,7 +42,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             <Link href="/privacy" className="transition hover:text-muted">
               Конфиденциальность
             </Link>
-            <span className="ml-auto">monah · музыку добавляют слушатели</span>
+            <span className="ml-auto">Rate · музыку добавляют слушатели</span>
           </footer>
         </main>
       </div>

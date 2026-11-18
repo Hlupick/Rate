@@ -23,7 +23,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
         {children}
         <p className="mt-6 text-center text-xs text-dim">
-          monah · музыка, которую добавляют слушатели
+          Rate · музыка, которую добавляют слушатели
         </p>
       </div>
     </div>

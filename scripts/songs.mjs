@@ -5,7 +5,7 @@ export const SONGS = [
   {
     slug: 'nochnoy-tramvay',
     title: 'Ночной трамвай',
-    artist: 'Monah Collective',
+    artist: 'Rate Collective',
     album: 'Ночные линии',
     genre: 'lo-fi',
     bpm: 82,
@@ -179,7 +179,7 @@ export const SONGS = [
   {
     slug: 'tikhiy-chas',
     title: 'Тихий час',
-    artist: 'Monah Collective',
+    artist: 'Rate Collective',
     album: 'Ночные линии',
     genre: 'neo-soul',
     bpm: 76,

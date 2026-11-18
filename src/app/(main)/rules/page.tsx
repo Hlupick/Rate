@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Правила',
-  description: 'Правила публикации музыки и модерации на monah.',
+  description: 'Правила публикации музыки и модерации в Rate.',
 }
 
 const CONTACT = process.env.CONTACT_EMAIL ?? 'support@monah.local'
@@ -23,7 +23,7 @@ export default function RulesPage() {
 
       <div className="mt-8 space-y-6 text-sm leading-relaxed text-muted">
         <section>
-          <h2 className="mb-2 text-lg font-bold text-ink">Что такое monah</h2>
+          <h2 className="mb-2 text-lg font-bold text-ink">Что такое Rate</h2>
           <p>
             Это локальная музыкальная библиотека, которую наполняют сами слушатели. Все треки
             загружают пользователи, а не редакция. Прослушивание открыто для всех, загрузка — по

@@ -5,13 +5,13 @@ import { PwaClient } from '@/components/pwa/PwaClient'
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL ?? 'http://localhost:3000'),
-  title: { default: 'monah', template: '%s · monah' },
+  title: { default: 'Rate', template: '%s · Rate' },
   description: 'Музыка, которую добавляют сами слушатели.',
-  applicationName: 'monah',
+  applicationName: 'Rate',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
-    title: 'monah',
+    title: 'Rate',
     statusBarStyle: 'black-translucent',
   },
   icons: {

@@ -17,7 +17,7 @@ export async function GET() {
   return new Response(stream, {
     headers: {
       'Content-Type': 'application/vnd.android.package-archive',
-      'Content-Disposition': `attachment; filename="monah-${release.versionName}.apk"`,
+      'Content-Disposition': `attachment; filename="rate-${release.versionName}.apk"`,
       'Content-Length': String(release.size),
       'Cache-Control': 'public, max-age=300',
     },

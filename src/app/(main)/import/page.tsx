@@ -37,7 +37,7 @@ export default async function ImportPage() {
           <ListPlus size={26} /> Импорт плейлиста
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          Вставьте ссылку на публичный плейлист <strong className="text-ink">Deezer</strong> — monah
+          Вставьте ссылку на публичный плейлист <strong className="text-ink">Deezer</strong> — Rate
           перенесёт названия и исполнителей и создаст плейлист. Также можно загрузить файл плейлиста
           (M3U/M3U8, JSON, CSV) или список строк. Совпавшие с библиотекой треки станут играбельными,
           остальные сохранятся как «не загружено». Аудио из сервисов не скачивается.

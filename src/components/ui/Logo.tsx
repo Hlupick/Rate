@@ -14,7 +14,7 @@ export function Logo({ size = 30 }: { size?: number }) {
         <circle cx="16" cy="16" r="5.5" stroke="currentColor" strokeOpacity="0.85" />
         <circle cx="16" cy="16" r="1.8" fill="currentColor" />
       </svg>
-      <span className="text-[21px] font-extrabold leading-none tracking-[-0.04em]">monah</span>
+      <span className="text-[21px] font-extrabold leading-none tracking-[-0.04em]">Rate</span>
     </span>
   )
 }

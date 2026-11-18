@@ -43,7 +43,7 @@ export default async function UploadPage() {
         </div>
         <h1 className="mt-1 text-3xl font-extrabold tracking-tight md:text-4xl">Загрузить трек</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-          Добавьте свою музыку в общую библиотеку monah. Название, исполнитель и альбом
+          Добавьте свою музыку в общую библиотеку Rate. Название, исполнитель и альбом
           подтягиваются из тегов файла, но всё можно поправить перед публикацией.
         </p>
 

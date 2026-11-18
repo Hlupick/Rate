@@ -188,7 +188,7 @@ function ensureUser(username, displayName, email, { admin = false, canUpload = f
 const demoId = ensureUser('demo', 'Стас', 'demo@monah.local', { canUpload: true })
 
 const artistSlugs = {
-  'Monah Collective': 'monahcollective',
+  'Rate Collective': 'ratecollective',
   Vela: 'vela',
   'Kirill Ostrov': 'kirillostrov',
   'Тайга 63': 'tayga63',

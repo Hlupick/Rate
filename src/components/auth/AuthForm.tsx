@@ -51,7 +51,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   return (
     <div className="rounded-xl border border-line bg-panel p-6 shadow-2xl md:p-8">
       <h1 className="text-2xl font-extrabold tracking-tight">
-        {mode === 'login' ? 'Вход в monah' : 'Создать аккаунт'}
+        {mode === 'login' ? 'Вход в Rate' : 'Создать аккаунт'}
       </h1>
       <p className="mt-1.5 text-sm text-muted">
         {mode === 'login'

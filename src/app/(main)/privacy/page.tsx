@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Конфиденциальность',
-  description: 'Какие данные monah хранит и как их удалить.',
+  description: 'Какие данные Rate хранит и как их удалить.',
 }
 
 const CONTACT = process.env.CONTACT_EMAIL ?? 'support@monah.local'

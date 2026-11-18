@@ -8,7 +8,7 @@ import { timeAgo } from '@/lib/format'
 
 export const metadata: Metadata = {
   title: 'Приложение для Android',
-  description: 'monah как отдельное приложение на Android: скачайте APK и слушайте музыку в фоне.',
+  description: 'Rate как отдельное приложение на Android: скачайте APK и слушайте музыку в фоне.',
 }
 
 // The APK lives on the storage volume and can be replaced without a rebuild.
@@ -45,7 +45,7 @@ export default async function DownloadPage() {
         />
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">
-            monah для Android
+            Rate для Android
           </h1>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
             Тот же каталог и ваша медиатека, но в отдельном приложении: без адресной строки,
@@ -130,7 +130,7 @@ export default async function DownloadPage() {
       <ol className="mt-6 space-y-2 rounded-xl border border-line px-5 py-4 text-xs leading-relaxed text-muted">
         <li>1. Нажмите «Скачать APK» и дождитесь загрузки файла.</li>
         <li>2. Откройте загрузку — Android спросит разрешение на установку из браузера.</li>
-        <li>3. Запустите monah и войдите тем же аккаунтом, что и на сайте.</li>
+        <li>3. Запустите Rate и войдите тем же аккаунтом, что и на сайте.</li>
         <li>4. Музыка продолжает играть при выключенном экране, кнопки есть в шторке.</li>
       </ol>
 
@@ -144,7 +144,7 @@ export default async function DownloadPage() {
 
       <div className="mt-auto pt-10 text-center text-[11px] text-dim">
         <Link href="/" className="hover:text-muted">
-          monah — музыка, которая всегда рядом
+          Rate — музыка, которая всегда рядом
         </Link>
       </div>
     </div>

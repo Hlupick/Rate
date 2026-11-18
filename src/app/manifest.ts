@@ -3,8 +3,8 @@ import type { MetadataRoute } from 'next'
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: '/',
-    name: 'monah — музыка, которая всегда рядом',
-    short_name: 'monah',
+    name: 'Rate — музыка, которая всегда рядом',
+    short_name: 'Rate',
     description: 'Слушайте музыку, собирайте плейлисты и загружайте треки — всё в одном месте.',
     lang: 'ru',
     dir: 'ltr',

@@ -66,11 +66,11 @@ export function PwaClient() {
           <Download size={17} className="text-accent" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-ink">Установить monah</div>
+          <div className="text-sm font-semibold text-ink">Установить Rate</div>
           <p className="mt-0.5 text-xs leading-relaxed text-muted">
             {showIosHint
-              ? 'Нажмите «Поделиться» → «На домашний экран», чтобы открывать monah как приложение.'
-              : 'Открывайте monah с домашнего экрана: быстрее запуск и удобное управление музыкой.'}
+              ? 'Нажмите «Поделиться» → «На домашний экран», чтобы открывать Rate как приложение.'
+              : 'Открывайте Rate с домашнего экрана: быстрее запуск и удобное управление музыкой.'}
           </p>
           <div className="mt-2 flex gap-2">
             {installEvent && (
