@@ -10,7 +10,6 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { coverUrl } from '@/lib/format'
 
 export type PlayerTrack = {
   id: string
@@ -18,7 +17,6 @@ export type PlayerTrack = {
   artist: string
   album?: string | null
   duration: number
-  cover: string | null
   liked?: boolean
 }
 
@@ -409,23 +407,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    const ext = current.cover?.split('.').pop()?.toLowerCase()
-    const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg'
-    const artwork = current.cover
-      ? [
-          {
-            src: new URL(coverUrl(current.cover)!, window.location.origin).href,
-            sizes: '512x512',
-            type,
-          },
-        ]
-      : []
-
     session.metadata = new MediaMetadataCtor({
       title: current.title,
       artist: current.artist,
       album: current.album ?? '',
-      artwork,
+      artwork: [
+        {
+          src: new URL('/icons/icon-512.png', window.location.origin).href,
+          sizes: '512x512',
+          type: 'image/png',
+        },
+      ],
     })
     session.playbackState = isPlaying ? 'playing' : 'paused'
   }, [current, isPlaying])

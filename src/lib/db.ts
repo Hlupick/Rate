@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS users (
   display_name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   bio TEXT,
+  avatar TEXT,
+  cover TEXT,
   can_upload INTEGER NOT NULL DEFAULT 0,
   is_admin INTEGER NOT NULL DEFAULT 0,
   is_banned INTEGER NOT NULL DEFAULT 0,
@@ -55,6 +57,7 @@ CREATE TABLE IF NOT EXISTS playlists (
   source_url TEXT,
   source TEXT,
   cover TEXT,
+  avatar TEXT,
   created_at INTEGER NOT NULL
 );
 
@@ -132,6 +135,9 @@ function createDb() {
     'ALTER TABLE playlists ADD COLUMN source_url TEXT',
     'ALTER TABLE playlists ADD COLUMN source TEXT',
     'ALTER TABLE playlists ADD COLUMN cover TEXT',
+    'ALTER TABLE playlists ADD COLUMN avatar TEXT',
+    'ALTER TABLE users ADD COLUMN avatar TEXT',
+    'ALTER TABLE users ADD COLUMN cover TEXT',
   ]
   for (const sql of migrations) {
     try {

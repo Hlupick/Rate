@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getCurrentUser } from '@/lib/auth'
 import { getTrack, getUserById, listTracks } from '@/lib/queries'
-import { Cover } from '@/components/ui/Cover'
 import { Avatar } from '@/components/ui/Avatar'
 import { TrackHeroActions } from '@/components/track/Actions'
 import { TrackList } from '@/components/track/TrackList'
@@ -40,18 +39,17 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
       <div className="relative">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.09] via-white/[0.02] to-transparent" />
         <div className="relative flex flex-col items-center gap-6 px-4 pb-6 pt-8 text-center md:flex-row md:items-end md:px-6 md:pt-12 md:text-left">
-          <Cover
-            cover={track.cover}
-            alt={track.title}
-            seed={track.artist}
+          <Avatar
+            name={track.artist}
+            shape="square"
             className="h-44 w-44 rounded-lg shadow-2xl md:h-56 md:w-56"
-            iconSize={40}
+            textClassName="text-6xl md:text-7xl"
           />
-          <div className="w-full min-w-0 md:w-auto">
+          <div className="w-full min-w-0 md:flex-1">
             <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
               Трек
             </div>
-            <h1 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight md:text-5xl">
+            <h1 className="mt-2 break-words text-3xl font-extrabold leading-tight tracking-tight md:text-4xl xl:text-5xl">
               {track.title}
             </h1>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted md:justify-start">
@@ -114,10 +112,19 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
               <dl className="space-y-1.5">
                 <div className="flex justify-between gap-4">
                   <dt>Загрузил</dt>
-                  <dd className="truncate text-ink">
+                  <dd className="flex min-w-0 items-center justify-end gap-1.5 text-ink">
                     {uploader ? (
-                      <Link href={`/profile/${uploader.username}`} className="hover:underline">
-                        {uploader.displayName}
+                      <Link
+                        href={`/profile/${uploader.username}`}
+                        className="flex min-w-0 items-center gap-1.5 hover:underline"
+                      >
+                        <Avatar
+                          name={uploader.displayName}
+                          src={uploader.avatar}
+                          className="h-5 w-5"
+                          textClassName="text-[8px]"
+                        />
+                        <span className="truncate">{uploader.displayName}</span>
                       </Link>
                     ) : (
                       '—'

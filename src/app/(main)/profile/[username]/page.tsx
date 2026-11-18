@@ -7,6 +7,8 @@ import { CardGrid, SectionHeader } from '@/components/ui/Section'
 import { PlaylistCard } from '@/components/ui/cards'
 import { TrackList } from '@/components/track/TrackList'
 import { Avatar } from '@/components/ui/Avatar'
+import { CoverBanner } from '@/components/ui/Cover'
+import { ProfileEditor } from '@/components/profile/ProfileEditor'
 import { formatCount } from '@/lib/format'
 
 export async function generateMetadata({
@@ -37,19 +39,24 @@ export default async function ProfilePage({
 
   return (
     <div>
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.07] via-white/[0.02] to-transparent" />
+      <div className="relative overflow-hidden">
+        <CoverBanner
+          cover={profile.cover}
+          seed={profile.username}
+          className="absolute inset-0 h-full w-full"
+        />
         <div className="relative flex flex-col items-center gap-6 px-4 pb-6 pt-10 text-center md:flex-row md:items-end md:px-6 md:pt-14 md:text-left">
           <Avatar
             name={profile.displayName}
+            src={profile.avatar}
             className="h-36 w-36 md:h-44 md:w-44"
             textClassName="text-4xl"
           />
-          <div className="w-full min-w-0 md:w-auto">
+          <div className="w-full min-w-0 md:flex-1">
             <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
               Профиль
             </div>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight md:text-5xl">
+            <h1 className="mt-2 break-words text-3xl font-extrabold tracking-tight md:text-4xl xl:text-5xl">
               {profile.displayName}
             </h1>
             <p className="mt-2 text-sm text-muted">
@@ -58,7 +65,13 @@ export default async function ProfilePage({
             </p>
             {profile.bio && <p className="mt-2 max-w-xl text-sm text-muted">{profile.bio}</p>}
             {isSelf && (
-              <div className="mt-3 flex justify-center gap-2 md:justify-start">
+              <div className="mt-3 flex flex-wrap justify-center gap-2 md:justify-start">
+                <ProfileEditor
+                  displayName={profile.displayName}
+                  bio={profile.bio}
+                  avatar={profile.avatar}
+                  cover={profile.cover}
+                />
                 <Link
                   href="/upload"
                   className="rounded-full border border-line px-4 py-1.5 text-xs font-medium text-muted transition hover:border-white/30 hover:text-ink"

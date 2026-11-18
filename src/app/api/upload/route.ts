@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { parseBuffer } from 'music-metadata'
 import { getCurrentUser } from '@/lib/auth'
-import { COVERS_DIR, TRACKS_DIR } from '@/lib/db'
+import { TRACKS_DIR } from '@/lib/db'
 import { createTrack, userUploadStats } from '@/lib/queries'
 import { QUOTAS, diskFreeBytes, formatBytes } from '@/lib/storage'
 import { rateLimit } from '@/lib/rate-limit'
@@ -138,16 +138,6 @@ export async function POST(request: Request) {
   const fileName = `${randomUUID()}.${detected.ext}`
   await fs.writeFile(path.join(TRACKS_DIR, fileName), buffer)
 
-  let cover: string | null = null
-  const picture = metadata.common.picture?.[0]
-  if (picture && picture.data.length > 0) {
-    const format = (picture.format ?? '').toLowerCase()
-    const ext = format.includes('png') ? 'png' : format.includes('webp') ? 'webp' : 'jpg'
-    const coverName = `${randomUUID()}.${ext}`
-    await fs.writeFile(path.join(COVERS_DIR, coverName), Buffer.from(picture.data))
-    cover = coverName
-  }
-
   const track = createTrack({
     title,
     artist: artist || user.displayName,
@@ -157,7 +147,6 @@ export async function POST(request: Request) {
     fileName,
     mimeType: detected.mime,
     size: buffer.length,
-    cover,
     uploaderId: user.id,
   })
 

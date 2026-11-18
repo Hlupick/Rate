@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "seed": "node scripts/seed.mjs",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "cleanup:covers": "node scripts/cleanup-track-covers.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

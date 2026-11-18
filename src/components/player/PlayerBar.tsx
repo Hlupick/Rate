@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { usePlayer } from './PlayerProvider'
 import { Bar } from '@/components/ui/Bar'
-import { Cover } from '@/components/ui/Cover'
+import { Avatar } from '@/components/ui/Avatar'
 import { LikeButton } from '@/components/track/LikeButton'
 import { QueuePanel } from './QueuePanel'
 import { formatDuration } from '@/lib/format'
@@ -100,12 +100,11 @@ export function PlayerBar() {
         <div className="flex min-w-0 flex-1 items-center gap-2.5 md:w-[28%] md:flex-none md:gap-3">
           {current ? (
             <>
-              <Cover
-                cover={current.cover}
-                alt={current.title}
-                seed={current.artist}
-                className="h-11 w-11 shadow-lg md:h-14 md:w-14"
-                iconSize={18}
+              <Avatar
+                name={current.artist}
+                shape="square"
+                className="h-11 w-11 md:h-14 md:w-14"
+                textClassName="text-sm md:text-base"
               />
               <div className="min-w-0">
                 <Link

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Pause, Play } from 'lucide-react'
-import { Cover } from '@/components/ui/Cover'
+import { Avatar } from '@/components/ui/Avatar'
 import { usePlayer, type PlayerTrack } from '@/components/player/PlayerProvider'
 import type { Track } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -15,7 +15,6 @@ export function RecentGrid({ tracks, label }: { tracks: Track[]; label?: string 
     artist: t.artist,
     album: t.album,
     duration: t.duration,
-    cover: t.cover,
     liked: t.liked,
   }))
 
@@ -28,12 +27,11 @@ export function RecentGrid({ tracks, label }: { tracks: Track[]; label?: string 
             key={track.id}
             className="group relative flex items-center gap-3 overflow-hidden rounded-md bg-white/[0.07] pr-3 transition hover:bg-white/[0.12]"
           >
-            <Cover
-              cover={track.cover}
-              alt={track.title}
-              seed={track.artist}
+            <Avatar
+              name={track.artist}
+              shape="square"
               className="h-14 w-14 rounded-none sm:h-16 sm:w-16"
-              iconSize={18}
+              textClassName="text-base"
             />
             <Link
               href={`/track/${track.id}`}

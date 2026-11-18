@@ -44,11 +44,11 @@ export default async function ArtistPage({ params }: { params: Promise<{ name: s
             className="h-40 w-40 md:h-52 md:w-52"
             textClassName="text-6xl md:text-7xl"
           />
-          <div className="w-full min-w-0 md:w-auto">
+          <div className="w-full min-w-0 md:flex-1">
             <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted md:justify-start">
               <BadgeCheck size={14} /> Исполнитель
             </div>
-            <h1 className="mt-2 text-4xl font-extrabold leading-none tracking-tight md:text-6xl">
+            <h1 className="mt-2 break-words text-4xl font-extrabold leading-none tracking-tight md:text-5xl xl:text-6xl">
               {artist}
             </h1>
             <p className="mt-3 text-sm text-muted">

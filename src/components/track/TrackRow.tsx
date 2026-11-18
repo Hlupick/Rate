@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Pause, Play } from 'lucide-react'
-import { Cover } from '@/components/ui/Cover'
+import { Avatar } from '@/components/ui/Avatar'
 import { LikeButton } from '@/components/track/LikeButton'
 import { TrackMenu } from '@/components/track/TrackMenu'
 import { usePlayer, type PlayerTrack } from '@/components/player/PlayerProvider'
@@ -40,7 +40,6 @@ export function TrackRow({
     artist: t.artist,
     album: t.album,
     duration: t.duration,
-    cover: t.cover,
     liked: t.liked,
   }))
 
@@ -92,12 +91,11 @@ export function TrackRow({
       </div>
 
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <Cover
-          cover={track.cover}
-          alt={track.title}
-          seed={track.artist}
+        <Avatar
+          name={track.artist}
+          shape="square"
           className="h-10 w-10"
-          iconSize={16}
+          textClassName="text-xs"
         />
         <div className="min-w-0">
           <Link

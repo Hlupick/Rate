@@ -4,6 +4,8 @@ export type UserPublic = {
   username: string
   displayName: string
   bio: string | null
+  avatar: string | null
+  cover: string | null
   createdAt: number
   canUpload: boolean
   isAdmin: boolean
@@ -22,7 +24,6 @@ export type Track = {
   fileName: string
   mimeType: string
   size: number
-  cover: string | null
   uploaderId: string
   playCount: number
   createdAt: number
@@ -39,6 +40,7 @@ export type Playlist = {
   trackCount: number
   missingCount: number
   cover: string | null
+  avatar: string | null
   sourceUrl: string | null
   source: string | null
   ownerName: string
@@ -57,7 +59,6 @@ export type PlaylistDraft = {
 export type ArtistSummary = {
   artist: string
   trackCount: number
-  cover: string | null
   playCount: number
 }
 

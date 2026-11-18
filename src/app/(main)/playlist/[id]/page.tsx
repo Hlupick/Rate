@@ -9,7 +9,8 @@ import {
   getPlaylistTracks,
   getUserByUsername,
 } from '@/lib/queries'
-import { Cover } from '@/components/ui/Cover'
+import { Avatar } from '@/components/ui/Avatar'
+import { CoverBanner } from '@/components/ui/Cover'
 import { PlayAllButton } from '@/components/track/Actions'
 import { TrackList } from '@/components/track/TrackList'
 import { PlaylistMenu } from '@/components/playlist/PlaylistMenu'
@@ -42,21 +43,25 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
 
   return (
     <div>
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.08] via-white/[0.02] to-transparent" />
+      <div className="relative overflow-hidden">
+        <CoverBanner
+          cover={playlist.cover}
+          seed={playlist.id}
+          className="absolute inset-0 h-full w-full"
+        />
         <div className="relative flex flex-col items-center gap-6 px-4 pb-5 pt-8 text-center md:flex-row md:items-end md:px-6 md:pt-12 md:text-left">
-          <Cover
-            cover={playlist.cover}
-            alt={playlist.name}
-            seed={playlist.id}
+          <Avatar
+            name={playlist.name}
+            src={playlist.avatar ?? playlist.cover}
+            shape="square"
             className="h-44 w-44 rounded-lg shadow-2xl md:h-56 md:w-56"
-            iconSize={40}
+            textClassName="text-5xl md:text-6xl"
           />
-          <div className="w-full min-w-0 md:w-auto">
+          <div className="w-full min-w-0 md:flex-1">
             <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted md:justify-start">
               {playlist.isPublic ? <Globe2 size={13} /> : <Lock size={13} />} Плейлист
             </div>
-            <h1 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight md:text-5xl">
+            <h1 className="mt-2 break-words text-3xl font-extrabold leading-tight tracking-tight md:text-4xl xl:text-5xl">
               {playlist.name}
             </h1>
             {playlist.description && (
@@ -66,8 +71,14 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
               {owner && (
                 <Link
                   href={`/profile/${owner.username}`}
-                  className="font-medium text-ink hover:underline"
+                  className="inline-flex items-center gap-1.5 font-medium text-ink hover:underline"
                 >
+                  <Avatar
+                    name={owner.displayName}
+                    src={owner.avatar}
+                    className="h-5 w-5"
+                    textClassName="text-[8px]"
+                  />
                   {owner.displayName}
                 </Link>
               )}
@@ -101,6 +112,8 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
               playlistId={playlist.id}
               name={playlist.name}
               description={playlist.description}
+              avatar={playlist.avatar}
+              cover={playlist.cover}
             />
           )}
         </div>

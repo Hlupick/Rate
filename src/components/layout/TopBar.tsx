@@ -4,11 +4,16 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, LogOut, Shield, Upload, User } from 'lucide-react'
-import { initials } from '@/lib/format'
 import { Logo } from '@/components/ui/Logo'
+import { Avatar } from '@/components/ui/Avatar'
 
 type TopBarProps = {
-  user: { displayName: string; username: string; isAdmin?: boolean } | null
+  user: {
+    displayName: string
+    username: string
+    avatar?: string | null
+    isAdmin?: boolean
+  } | null
 }
 
 export function TopBar({ user }: TopBarProps) {
@@ -71,9 +76,12 @@ export function TopBar({ user }: TopBarProps) {
                   className="flex h-10 items-center gap-2 rounded-full bg-black/50 p-1 pr-3 text-sm transition hover:bg-black/70"
                   aria-label="Меню профиля"
                 >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[#4a4a4a] to-[#232323] text-[10px] font-bold">
-                    {initials(user.displayName)}
-                  </span>
+                  <Avatar
+                    name={user.displayName}
+                    src={user.avatar}
+                    className="h-8 w-8"
+                    textClassName="text-[10px]"
+                  />
                   <span className="hidden max-w-32 truncate font-medium sm:block">
                     {user.displayName}
                   </span>

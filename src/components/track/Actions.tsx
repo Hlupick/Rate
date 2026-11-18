@@ -14,7 +14,6 @@ function toQueue(tracks: Track[]): PlayerTrack[] {
     artist: t.artist,
     album: t.album,
     duration: t.duration,
-    cover: t.cover,
     liked: t.liked,
   }))
 }

@@ -21,6 +21,8 @@ function mapUser(row: Row): UserRecord {
     username: String(row.username),
     displayName: String(row.display_name),
     bio: row.bio ? String(row.bio) : null,
+    avatar: row.avatar ? String(row.avatar) : null,
+    cover: row.cover ? String(row.cover) : null,
     createdAt: Number(row.created_at),
     canUpload: Number(row.can_upload ?? 0) === 1,
     isAdmin: Number(row.is_admin ?? 0) === 1,
@@ -40,7 +42,6 @@ function mapTrack(row: Row): Track {
     fileName: String(row.file_name),
     mimeType: String(row.mime_type),
     size: Number(row.size ?? 0),
-    cover: row.cover ? String(row.cover) : null,
     uploaderId: String(row.uploader_id),
     playCount: Number(row.play_count ?? 0),
     createdAt: Number(row.created_at),
@@ -59,6 +60,7 @@ function mapPlaylist(row: Row): Playlist {
     trackCount: Number(row.track_count ?? 0),
     missingCount: Number(row.missing_count ?? 0),
     cover: row.cover ? String(row.cover) : null,
+    avatar: row.avatar ? String(row.avatar) : null,
     sourceUrl: row.source_url ? String(row.source_url) : null,
     source: row.source ? String(row.source) : null,
     ownerName: String(row.owner_name ?? ''),
@@ -118,6 +120,41 @@ export function createUser(input: {
     Date.now(),
   )
   return getUserById(id)!
+}
+
+export function usedImageNames(): string[] {
+  const rows = db
+    .prepare(
+      `SELECT avatar AS name FROM users WHERE avatar IS NOT NULL
+       UNION ALL SELECT cover AS name FROM users WHERE cover IS NOT NULL
+       UNION ALL SELECT avatar AS name FROM playlists WHERE avatar IS NOT NULL
+       UNION ALL SELECT cover AS name FROM playlists WHERE cover IS NOT NULL`,
+    )
+    .all() as Row[]
+  return rows.map((row) => String(row.name))
+}
+
+export function updateUserProfile(
+  id: string,
+  patch: {
+    displayName?: string
+    bio?: string | null
+    avatar?: string | null
+    cover?: string | null
+  },
+): UserPublic | null {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as Row | undefined
+  if (!user) return null
+  db.prepare(
+    'UPDATE users SET display_name = ?, bio = ?, avatar = ?, cover = ? WHERE id = ?',
+  ).run(
+    patch.displayName?.trim() || String(user.display_name),
+    patch.bio === undefined ? user.bio : patch.bio,
+    patch.avatar === undefined ? user.avatar : patch.avatar,
+    patch.cover === undefined ? user.cover : patch.cover,
+    id,
+  )
+  return getUserById(id)
 }
 
 /* --------------------------------- tracks --------------------------------- */
@@ -213,7 +250,6 @@ export function createTrack(input: {
   fileName: string
   mimeType: string
   size: number
-  cover: string | null
   uploaderId: string
   createdAt?: number
 }): Track {
@@ -222,8 +258,8 @@ export function createTrack(input: {
     .join(' ')
     .toLowerCase()
   db.prepare(
-    `INSERT INTO tracks (id, title, artist, album, genre, duration, file_name, mime_type, size, cover, uploader_id, play_count, search_text, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+    `INSERT INTO tracks (id, title, artist, album, genre, duration, file_name, mime_type, size, uploader_id, play_count, search_text, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
   ).run(
     id,
     input.title,
@@ -234,7 +270,6 @@ export function createTrack(input: {
     input.fileName,
     input.mimeType,
     input.size,
-    input.cover,
     input.uploaderId,
     searchText,
     input.createdAt ?? Date.now(),
@@ -270,11 +305,10 @@ export function deleteTrackRow(id: string, uploaderId: string): Track | null {
   return track
 }
 
-export function trackFileNames(): { fileName: string; cover: string | null }[] {
-  return (db.prepare('SELECT file_name, cover FROM tracks').all() as Row[]).map((r) => ({
-    fileName: String(r.file_name),
-    cover: r.cover ? String(r.cover) : null,
-  }))
+export function trackFileNames(): string[] {
+  return (db.prepare('SELECT file_name FROM tracks').all() as Row[]).map((r) =>
+    String(r.file_name),
+  )
 }
 
 export function recordPlay(userId: string, trackId: string) {
@@ -328,11 +362,6 @@ const PLAYLIST_SELECT = `
   SELECT p.*,
     (SELECT COUNT(*) FROM playlist_tracks pt WHERE pt.playlist_id = p.id) AS track_count,
     (SELECT COUNT(*) FROM playlist_drafts d WHERE d.playlist_id = p.id) AS missing_count,
-    COALESCE(
-      p.cover,
-      (SELECT t.cover FROM playlist_tracks pt2 JOIN tracks t ON t.id = pt2.track_id
-        WHERE pt2.playlist_id = p.id ORDER BY pt2.position LIMIT 1)
-    ) AS cover,
     u.display_name AS owner_name,
     u.username AS owner_username
   FROM playlists p JOIN users u ON u.id = p.owner_id
@@ -397,21 +426,30 @@ export function findPlaylistBySource(ownerId: string, sourceUrl: string): Playli
 export function updatePlaylist(
   id: string,
   ownerId: string,
-  patch: { name?: string; description?: string | null },
-): boolean {
+  patch: {
+    name?: string
+    description?: string | null
+    avatar?: string | null
+    cover?: string | null
+  },
+): Playlist | null {
   const playlist = db.prepare('SELECT * FROM playlists WHERE id = ?').get(id) as Row | undefined
-  if (!playlist || playlist.owner_id !== ownerId) return false
-  db.prepare('UPDATE playlists SET name = ?, description = ? WHERE id = ?').run(
+  if (!playlist || playlist.owner_id !== ownerId) return null
+  db.prepare('UPDATE playlists SET name = ?, description = ?, avatar = ?, cover = ? WHERE id = ?').run(
     patch.name?.trim() || String(playlist.name),
     patch.description === undefined ? (playlist.description as string | null) : patch.description,
+    patch.avatar === undefined ? playlist.avatar : patch.avatar,
+    patch.cover === undefined ? playlist.cover : patch.cover,
     id,
   )
-  return true
+  return getPlaylist(id)
 }
 
-export function deletePlaylist(id: string, ownerId: string): boolean {
+export function deletePlaylist(id: string, ownerId: string): Playlist | null {
+  const playlist = getPlaylist(id)
+  if (!playlist || playlist.ownerId !== ownerId) return null
   const result = db.prepare('DELETE FROM playlists WHERE id = ? AND owner_id = ?').run(id, ownerId)
-  return Number(result.changes) > 0
+  return Number(result.changes) > 0 ? playlist : null
 }
 
 export function getPlaylistTracks(playlistId: string, viewerId?: string | null): Track[] {
@@ -526,8 +564,7 @@ export function listArtists(q?: string, limit = 24): ArtistSummary[] {
   }
   const rows = db
     .prepare(
-      `SELECT artist, COUNT(*) AS track_count, SUM(play_count) AS play_count,
-        (SELECT cover FROM tracks t2 WHERE t2.artist = t.artist AND t2.cover IS NOT NULL ORDER BY t2.play_count DESC LIMIT 1) AS cover
+      `SELECT artist, COUNT(*) AS track_count, SUM(play_count) AS play_count
        FROM tracks t ${where}
        GROUP BY artist ORDER BY track_count DESC, play_count DESC LIMIT ?`,
     )
@@ -535,7 +572,6 @@ export function listArtists(q?: string, limit = 24): ArtistSummary[] {
   return rows.map((r) => ({
     artist: String(r.artist),
     trackCount: Number(r.track_count),
-    cover: r.cover ? String(r.cover) : null,
     playCount: Number(r.play_count ?? 0),
   }))
 }

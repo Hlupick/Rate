@@ -5,7 +5,7 @@ import path from 'node:path'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { COVERS_DIR, TRACKS_DIR } from '@/lib/db'
+import { TRACKS_DIR } from '@/lib/db'
 import {
   createInvite,
   deleteInvite,
@@ -69,9 +69,6 @@ export async function deleteTrackAction(formData: FormData) {
   const track = deleteTrackAsAdmin(trackId)
   if (track) {
     await fsp.unlink(path.join(TRACKS_DIR, track.fileName)).catch(() => undefined)
-    if (track.cover) {
-      await fsp.unlink(path.join(COVERS_DIR, track.cover)).catch(() => undefined)
-    }
   }
   revalidatePath('/admin')
   revalidatePath('/')

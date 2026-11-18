@@ -6,7 +6,7 @@ import { Flag, ListMusic, ListPlus, Plus, Trash2, CirclePlus } from 'lucide-reac
 import { Menu, MenuItem } from '@/components/ui/Menu'
 import { Modal } from '@/components/ui/Modal'
 import { usePlayer, type PlayerTrack } from '@/components/player/PlayerProvider'
-import { Cover } from '@/components/ui/Cover'
+import { Avatar } from '@/components/ui/Avatar'
 import type { Track } from '@/lib/types'
 
 export function TrackMenu({
@@ -237,7 +237,13 @@ function ReportDialog({
   )
 }
 
-type PlaylistOption = { id: string; name: string; trackCount: number; cover: string | null }
+type PlaylistOption = {
+  id: string
+  name: string
+  trackCount: number
+  avatar: string | null
+  cover: string | null
+}
 
 function AddToPlaylistDialog({
   open,
@@ -311,7 +317,12 @@ function AddToPlaylistDialog({
       description={`«${track.title}» — ${track.artist}`}
     >
       <div className="mb-4 flex items-center gap-3 rounded-md bg-white/5 p-2">
-        <Cover cover={track.cover} alt={track.title} seed={track.artist} className="h-10 w-10" iconSize={16} />
+        <Avatar
+          name={track.artist}
+          shape="square"
+          className="h-10 w-10"
+          textClassName="text-xs"
+        />
         <div className="min-w-0">
           <div className="truncate text-sm font-medium">{track.title}</div>
           <div className="truncate text-xs text-muted">{track.artist}</div>
@@ -331,12 +342,12 @@ function AddToPlaylistDialog({
               onClick={() => addTo(playlist.id)}
               className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition hover:bg-white/5 disabled:opacity-50"
             >
-              <Cover
-                cover={playlist.cover}
-                alt={playlist.name}
-                seed={playlist.id}
+              <Avatar
+                name={playlist.name}
+                src={playlist.avatar ?? playlist.cover}
+                shape="square"
                 className="h-9 w-9"
-                iconSize={14}
+                textClassName="text-[10px]"
               />
               <span className="min-w-0 flex-1 truncate text-sm">{playlist.name}</span>
               <span className="text-xs text-dim">{playlist.trackCount}</span>

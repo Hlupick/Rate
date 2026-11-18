@@ -28,6 +28,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, username TEXT NOT NULL UNIQUE,
   display_name TEXT NOT NULL, password_hash TEXT NOT NULL, bio TEXT,
+  avatar TEXT, cover TEXT,
   can_upload INTEGER NOT NULL DEFAULT 0, is_admin INTEGER NOT NULL DEFAULT 0,
   is_banned INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL
 );
@@ -39,7 +40,8 @@ CREATE TABLE IF NOT EXISTS tracks (
 );
 CREATE TABLE IF NOT EXISTS playlists (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  is_public INTEGER NOT NULL DEFAULT 1, source_url TEXT, source TEXT, cover TEXT, created_at INTEGER NOT NULL
+  is_public INTEGER NOT NULL DEFAULT 1, source_url TEXT, source TEXT, cover TEXT,
+  avatar TEXT, created_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS playlist_tracks (
   playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
@@ -91,6 +93,9 @@ for (const sql of [
   'ALTER TABLE playlists ADD COLUMN source_url TEXT',
   'ALTER TABLE playlists ADD COLUMN source TEXT',
   'ALTER TABLE playlists ADD COLUMN cover TEXT',
+  'ALTER TABLE playlists ADD COLUMN avatar TEXT',
+  'ALTER TABLE users ADD COLUMN avatar TEXT',
+  'ALTER TABLE users ADD COLUMN cover TEXT',
 ]) {
   try {
     db.exec(sql)
@@ -221,8 +226,8 @@ for (let index = 0; index < SONGS.length; index += 1) {
   const id = randomUUID()
   const createdAt = now - index * 1000 * 60 * 60 * 7 - 1000 * 60 * 60 * 3
   db.prepare(
-    `INSERT INTO tracks (id, title, artist, album, genre, duration, file_name, mime_type, size, cover, uploader_id, play_count, search_text, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO tracks (id, title, artist, album, genre, duration, file_name, mime_type, size, uploader_id, play_count, search_text, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     song.title,
@@ -233,14 +238,13 @@ for (let index = 0; index < SONGS.length; index += 1) {
     fileName,
     'audio/mpeg',
     mp3.length,
-    coverName,
     userIds.get(song.artist) ?? demoId,
     song.playCount,
     `${song.title} ${song.artist} ${song.album} ${song.genre}`.toLowerCase(),
     createdAt,
   )
 
-  inserted.push({ id, song })
+  inserted.push({ id, song, coverName })
   const secs = ((Date.now() - started) / 1000).toFixed(1)
   console.log(`${rendered.duration.toFixed(0)} с, ${(mp3.length / 1024 / 1024).toFixed(1)} МБ (${secs} с)`)
 }
@@ -266,12 +270,20 @@ const playlistDefs = [
 ]
 
 const bySlug = new Map(inserted.map((item) => [item.song.slug, item.id]))
+const coverBySlug = new Map(inserted.map((item) => [item.song.slug, item.coverName]))
 
 for (const def of playlistDefs) {
   const playlistId = randomUUID()
   db.prepare(
-    'INSERT INTO playlists (id, name, description, owner_id, is_public, created_at) VALUES (?, ?, ?, ?, 1, ?)',
-  ).run(playlistId, def.name, def.description, demoId, now - 1000 * 60 * 60 * 20)
+    'INSERT INTO playlists (id, name, description, owner_id, is_public, cover, created_at) VALUES (?, ?, ?, ?, 1, ?, ?)',
+  ).run(
+    playlistId,
+    def.name,
+    def.description,
+    demoId,
+    coverBySlug.get(def.slugs[0]) ?? null,
+    now - 1000 * 60 * 60 * 20,
+  )
   def.slugs.forEach((slug, position) => {
     const trackId = bySlug.get(slug)
     if (!trackId) return

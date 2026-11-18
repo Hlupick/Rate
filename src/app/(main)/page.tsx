@@ -110,7 +110,6 @@ export default async function HomePage() {
               key={artist.artist}
               artist={artist.artist}
               trackCount={artist.trackCount}
-              cover={artist.cover}
             />
           ))}
         </CardGrid>

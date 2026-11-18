@@ -10,7 +10,12 @@ export default async function MainLayout({ children }: { children: React.ReactNo
   const user = await getCurrentUser()
   const playlists = user ? getPlaylistsByOwner(user.id) : []
   const profile = user
-    ? { displayName: user.displayName, username: user.username, isAdmin: user.isAdmin }
+    ? {
+        displayName: user.displayName,
+        username: user.username,
+        avatar: user.avatar,
+        isAdmin: user.isAdmin,
+      }
     : null
 
   return (
@@ -22,6 +27,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             id: p.id,
             name: p.name,
             trackCount: p.trackCount,
+            avatar: p.avatar,
             cover: p.cover,
           }))}
         />

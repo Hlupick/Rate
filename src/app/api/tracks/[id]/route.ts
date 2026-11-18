@@ -2,7 +2,7 @@ import fsp from 'node:fs/promises'
 import path from 'node:path'
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { COVERS_DIR, TRACKS_DIR } from '@/lib/db'
+import { TRACKS_DIR } from '@/lib/db'
 import { deleteTrackRow, getTrack } from '@/lib/queries'
 
 export const runtime = 'nodejs'
@@ -25,9 +25,6 @@ export async function DELETE(
   if (!removed) return NextResponse.json({ error: 'Не удалось удалить' }, { status: 400 })
 
   await fsp.unlink(path.join(TRACKS_DIR, removed.fileName)).catch(() => undefined)
-  if (removed.cover) {
-    await fsp.unlink(path.join(COVERS_DIR, removed.cover)).catch(() => undefined)
-  }
 
   return NextResponse.json({ ok: true })
 }

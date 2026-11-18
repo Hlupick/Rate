@@ -32,6 +32,46 @@ const IMAGE_TYPES: Record<string, string> = {
   'image/webp': 'webp',
 }
 
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+const STORED_IMAGE_NAME =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|jpeg|png|webp)$/i
+
+export function imageExtensionForMime(mime: string): string | null {
+  return IMAGE_TYPES[mime.split(';')[0].trim().toLowerCase()] ?? null
+}
+
+export function detectImageExtension(buffer: Buffer): string | null {
+  if (buffer.length < 12) return null
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'jpg'
+  if (buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+    return 'png'
+  }
+  if (buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') {
+    return 'webp'
+  }
+  return null
+}
+
+export function isValidImageName(name: unknown): name is string {
+  return typeof name === 'string' && STORED_IMAGE_NAME.test(name)
+}
+
+export async function saveImageFile(buffer: Buffer, ext: string): Promise<string> {
+  const name = `${randomUUID()}.${ext}`
+  await fsp.writeFile(path.join(COVERS_DIR, name), buffer)
+  return name
+}
+
+/** Delete a replaced image, unless another entity still references the same file. */
+export async function removeImageFile(
+  name: string | null | undefined,
+  stillUsed: (string | null | undefined)[] = [],
+): Promise<void> {
+  if (!isValidImageName(name) || stillUsed.includes(name)) return
+  await fsp.unlink(path.join(COVERS_DIR, path.basename(name))).catch(() => undefined)
+}
+
 export function isAllowedCoverUrl(value: string): boolean {
   try {
     const url = new URL(value)
@@ -53,14 +93,16 @@ export async function downloadCover(url: string): Promise<string | null> {
     if (!response.ok) return null
 
     const type = (response.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase()
-    const ext = IMAGE_TYPES[type]
-    if (!ext) return null
+    if (!IMAGE_TYPES[type]) return null
 
     const declared = Number(response.headers.get('content-length') ?? 0)
     if (declared > 5 * 1024 * 1024) return null
 
     const buffer = Buffer.from(await response.arrayBuffer())
     if (buffer.length === 0 || buffer.length > 5 * 1024 * 1024) return null
+
+    const ext = detectImageExtension(buffer)
+    if (!ext) return null
 
     const name = `${randomUUID()}.${ext}`
     await fsp.writeFile(path.join(COVERS_DIR, name), buffer)

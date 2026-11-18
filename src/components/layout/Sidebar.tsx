@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Heart, Home, Library, ListPlus, Plus, Search, Upload } from 'lucide-react'
-import { Cover } from '@/components/ui/Cover'
+import { Avatar } from '@/components/ui/Avatar'
 import { Logo } from '@/components/ui/Logo'
 import { CreatePlaylistDialog } from '@/components/playlist/CreatePlaylistDialog'
 import { cn } from '@/lib/utils'
@@ -14,6 +14,7 @@ type SidebarPlaylist = {
   id: string
   name: string
   trackCount: number
+  avatar: string | null
   cover: string | null
 }
 
@@ -120,12 +121,12 @@ export function Sidebar({ user, playlists }: SidebarProps) {
                     pathname === `/playlist/${playlist.id}` && 'bg-white/5',
                   )}
                 >
-                  <Cover
-                    cover={playlist.cover}
-                    alt={playlist.name}
-                    seed={playlist.id}
+                  <Avatar
+                    name={playlist.name}
+                    src={playlist.avatar ?? playlist.cover}
+                    shape="square"
                     className="h-12 w-12"
-                    iconSize={18}
+                    textClassName="text-sm"
                   />
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">{playlist.name}</div>

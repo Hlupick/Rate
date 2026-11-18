@@ -2,7 +2,7 @@
 
 import { X } from 'lucide-react'
 import { usePlayer } from './PlayerProvider'
-import { Cover } from '@/components/ui/Cover'
+import { Avatar } from '@/components/ui/Avatar'
 import { formatDuration, tracksWord } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -48,12 +48,11 @@ export function QueuePanel() {
                       className="flex min-w-0 flex-1 items-center gap-3 text-left"
                     >
                       <div className="relative">
-                        <Cover
-                          cover={track.cover}
-                          alt={track.title}
-                          seed={track.artist}
+                        <Avatar
+                          name={track.artist}
+                          shape="square"
                           className="h-10 w-10"
-                          iconSize={16}
+                          textClassName="text-xs"
                         />
                         {active && (
                           <div className="absolute inset-0 flex items-end justify-center gap-[2px] rounded-md bg-black/45 pb-2">
