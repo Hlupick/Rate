@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Pencil } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { ImagePicker } from '@/components/ui/ImagePicker'
+import { StatusPill } from '@/components/profile/StatusPill'
 import { STATUS_MAX_LENGTH, clampStatus, countStatusChars, limitStatusChars } from '@/lib/status'
 
 export function ProfileEditor({
@@ -118,6 +119,14 @@ export function ProfileEditor({
               <p id="profile-status-hint" className="text-[11px] text-muted">
                 Короткая подпись рядом с ником в профиле. Оставьте пустым, чтобы скрыть.
               </p>
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-[11px] text-muted">Так появится в профиле:</span>
+                {label.trim() ? (
+                  <StatusPill text={label.trim()} className="py-0.5 text-[12px]" />
+                ) : (
+                  <span className="text-[11px] text-muted">— скрыто</span>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted" htmlFor="profile-bio">

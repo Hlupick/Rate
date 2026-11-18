@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { Headphones, MessageSquare } from 'lucide-react'
+import { Headphones } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { getPlaylistsByOwner, getListeningSeconds, getUserByUsername, listTracks } from '@/lib/queries'
 import { CardGrid, SectionHeader } from '@/components/ui/Section'
@@ -11,6 +11,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { CoverBanner } from '@/components/ui/Cover'
 import { ProfileEditor } from '@/components/profile/ProfileEditor'
 import { StreakChip } from '@/components/streak/StreakChip'
+import { StatusPill } from '@/components/profile/StatusPill'
 import { formatCount, formatTotalDuration } from '@/lib/format'
 
 export async function generateMetadata({
@@ -62,18 +63,7 @@ export default async function ProfilePage({
             <h1 className="mt-2 flex flex-wrap items-center justify-center gap-2 break-words text-3xl font-extrabold tracking-tight md:justify-start md:text-4xl xl:text-5xl">
               <span>{profile.displayName}</span>
               <StreakChip username={profile.username} variant="glass" />
-              {profile.status && (
-                <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-2.5 py-1 text-[13px] font-semibold tracking-normal text-ink/85 backdrop-blur-md">
-                  <MessageSquare
-                    size={13}
-                    fill="currentColor"
-                    strokeWidth={0}
-                    className="shrink-0 text-white/55"
-                    aria-hidden
-                  />
-                  <span className="truncate">{profile.status}</span>
-                </span>
-              )}
+              {profile.status && <StatusPill text={profile.status} />}
             </h1>
             <p className="mt-2 text-sm text-muted">
               @{profile.username} · загрузок: {uploads.length} · прослушиваний:{' '}
