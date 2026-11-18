@@ -1,17 +1,18 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Download, RefreshCw, ShieldCheck, Smartphone } from 'lucide-react'
+import { Download, Monitor, RefreshCw, ShieldCheck, Smartphone } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
 import { readAppRelease } from '@/lib/app-release'
+import { readDesktopRelease } from '@/lib/desktop-release'
 import { timeAgo } from '@/lib/format'
 
 export const metadata: Metadata = {
-  title: 'Приложение для Android',
-  description: 'Rate как отдельное приложение на Android: скачайте APK и слушайте музыку в фоне.',
+  title: 'Приложения Rate',
+  description: 'Rate на Android и Windows: отдельное приложение с музыкой в фоне.',
 }
 
-// The APK lives on the storage volume and can be replaced without a rebuild.
+// Builds live on the storage volume and can be replaced without a rebuild.
 export const dynamic = 'force-dynamic'
 
 function formatSize(bytes: number): string {
@@ -20,7 +21,7 @@ function formatSize(bytes: number): string {
 }
 
 export default async function DownloadPage() {
-  const release = await readAppRelease()
+  const [release, desktop] = await Promise.all([readAppRelease(), readDesktopRelease()])
 
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-4 py-8 md:py-14">
@@ -45,11 +46,11 @@ export default async function DownloadPage() {
         />
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">
-            Rate для Android
+            Приложения Rate
           </h1>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
-            Тот же каталог и ваша медиатека, но в отдельном приложении: без адресной строки,
-            с музыкой в фоне и управлением с экрана блокировки.
+            Отдельное окно на компьютере и приложение на телефоне: тот же каталог, ваша
+            медиатека и музыка в фоне.
           </p>
         </div>
 
@@ -100,6 +101,71 @@ export default async function DownloadPage() {
           </div>
         )}
       </div>
+
+      {desktop && (
+        <div className="mt-10 w-full rounded-2xl border border-line bg-panel p-5 text-left md:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-black/30 text-ink">
+                <Monitor size={20} />
+              </span>
+              <div>
+                <h2 className="text-lg font-bold text-ink">Rate для Windows</h2>
+                <p className="text-xs text-muted">
+                  Windows 10/11 · отдельное окно, музыка в фоне
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-dim">
+              <span className="rounded-full border border-line px-2.5 py-1">
+                версия {desktop.version}
+              </span>
+              <span className="rounded-full border border-line px-2.5 py-1">
+                {formatSize(desktop.installer.size)}
+              </span>
+              {desktop.builtAt && (
+                <span className="rounded-full border border-line px-2.5 py-1">
+                  обновлено {timeAgo(new Date(desktop.builtAt).getTime())}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <a
+              href="/api/app/windows/setup"
+              download
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-bold text-black transition hover:bg-white"
+            >
+              <Download size={17} />
+              Скачать установщик
+            </a>
+            <a
+              href="/api/app/windows/portable"
+              download
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-line px-6 py-3 text-sm font-semibold text-ink transition hover:border-white/35"
+            >
+              Портативная · {formatSize(desktop.portable.size)}
+            </a>
+          </div>
+
+          <p className="mt-3 text-xs leading-relaxed text-muted">
+            Установщик создаёт ярлык в «Пуск» и на рабочем столе, удаляется через «Программы».
+            Портативная версия запускается сразу из папки. Все изменения сайта появляются
+            автоматически — переустанавливать для этого не нужно.
+          </p>
+          <p className="mt-1.5 text-xs leading-relaxed text-amber-200/80">
+            При первом запуске Windows покажет «Неизвестный издатель»: нажмите «Подробнее» →
+            «Выполнить в любом случае». Подписи Microsoft у самодельной сборки нет.
+          </p>
+          <p className="mt-2 break-all font-mono text-[10px] leading-relaxed text-dim">
+            SHA-256 установщика: {desktop.installer.sha256}
+          </p>
+          <p className="break-all font-mono text-[10px] leading-relaxed text-dim">
+            SHA-256 портативной: {desktop.portable.sha256}
+          </p>
+        </div>
+      )}
 
       <div className="mt-10 grid gap-3 md:mt-14 md:grid-cols-3">
         {[
