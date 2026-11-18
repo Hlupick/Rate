@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Flag, ListMusic, ListPlus, Plus, Trash2, CirclePlus } from 'lucide-react'
+import { Flag, ListMusic, ListPlus, Plus, Trash2, CirclePlus, ArrowDown, ArrowUp } from 'lucide-react'
 import { Menu, MenuItem } from '@/components/ui/Menu'
 import { Modal } from '@/components/ui/Modal'
 import { usePlayer, type PlayerTrack } from '@/components/player/PlayerProvider'
@@ -15,12 +15,16 @@ export function TrackMenu({
   canReport = false,
   playlistId,
   onRemoved,
+  onMoveUp,
+  onMoveDown,
 }: {
   track: Track
   canDelete?: boolean
   canReport?: boolean
   playlistId?: string
   onRemoved?: () => void
+  onMoveUp?: () => void
+  onMoveDown?: () => void
 }) {
   const router = useRouter()
   const { playNext, addToQueue } = usePlayer()
@@ -79,6 +83,31 @@ export function TrackMenu({
             >
               <Plus size={15} /> Добавить в плейлист
             </MenuItem>
+            {(onMoveUp || onMoveDown) && (
+              <>
+                <div className="my-1 h-px bg-white/5" />
+                {onMoveUp && (
+                  <MenuItem
+                    onClick={() => {
+                      close()
+                      onMoveUp()
+                    }}
+                  >
+                    <ArrowUp size={15} /> Выше в плейлисте
+                  </MenuItem>
+                )}
+                {onMoveDown && (
+                  <MenuItem
+                    onClick={() => {
+                      close()
+                      onMoveDown()
+                    }}
+                  >
+                    <ArrowDown size={15} /> Ниже в плейлисте
+                  </MenuItem>
+                )}
+              </>
+            )}
             {playlistId && (
               <>
                 <div className="my-1 h-px bg-white/5" />

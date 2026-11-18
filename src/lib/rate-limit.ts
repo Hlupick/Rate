@@ -34,6 +34,11 @@ export function rateLimit(
 
 export function clientIp(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0]!.trim()
+  if (forwarded) {
+    // Caddy appends the real peer address, so the last entry is the one the
+    // client cannot spoof. Caddyfile also overwrites the header upstream.
+    const parts = forwarded.split(',').map((part) => part.trim()).filter(Boolean)
+    if (parts.length > 0) return parts[parts.length - 1]!
+  }
   return request.headers.get('x-real-ip') ?? 'local'
 }

@@ -111,3 +111,47 @@ export async function downloadCover(url: string): Promise<string | null> {
     return null
   }
 }
+
+/**
+ * Deletes cover files that are no longer referenced by a profile or playlist.
+ * Files newer than `minAgeMs` are kept so an upload that is still in a modal
+ * is never removed before it gets saved.
+ */
+export async function sweepOrphanImages(
+  used: string[],
+  minAgeMs = 24 * 60 * 60 * 1000,
+): Promise<number> {
+  const keep = new Set(used)
+  const files = await fsp.readdir(COVERS_DIR).catch(() => [] as string[])
+  const now = Date.now()
+  let removed = 0
+
+  for (const file of files) {
+    if (keep.has(file)) continue
+    const full = path.join(COVERS_DIR, file)
+    const stat = await fsp.stat(full).catch(() => null)
+    if (!stat?.isFile() || now - stat.mtimeMs < minAgeMs) continue
+    await fsp.unlink(full).catch(() => undefined)
+    removed += 1
+  }
+
+  return removed
+}
+
+/** Total bytes used by audio files and artwork on disk. */
+export async function storageUsageBytes(): Promise<{ tracks: number; covers: number }> {
+  const measure = async (dir: string) => {
+    const files = await fsp.readdir(dir).catch(() => [] as string[])
+    let total = 0
+    for (const file of files) {
+      const stat = await fsp.stat(path.join(dir, file)).catch(() => null)
+      if (stat?.isFile()) total += stat.size
+    }
+    return total
+  }
+  const [tracks, covers] = await Promise.all([
+    measure(path.join(STORAGE_DIR, 'tracks')),
+    measure(COVERS_DIR),
+  ])
+  return { tracks, covers }
+}

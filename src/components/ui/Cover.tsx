@@ -1,6 +1,25 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import { Disc3 } from 'lucide-react'
 import { coverUrl, fallbackGradient } from '@/lib/format'
 import { cn } from '@/lib/utils'
+
+/** Loads a stored cover and falls back to the gradient when the file is gone. */
+function useCover(cover: string | null | undefined) {
+  const url = coverUrl(cover)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    setFailed(false)
+  }, [url])
+
+  return {
+    url,
+    show: Boolean(url) && !failed,
+    onError: () => setFailed(true),
+  }
+}
 
 type CoverProps = {
   cover: string | null | undefined
@@ -11,15 +30,21 @@ type CoverProps = {
 }
 
 export function Cover({ cover, alt, seed, className, iconSize = 24 }: CoverProps) {
-  const url = coverUrl(cover)
+  const image = useCover(cover)
   return (
     <div
       className={cn('relative shrink-0 overflow-hidden rounded-md bg-card', className)}
-      style={url ? undefined : { background: fallbackGradient(seed ?? alt) }}
+      style={image.show ? undefined : { background: fallbackGradient(seed ?? alt) }}
     >
-      {url ? (
+      {image.show ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt={alt} className="h-full w-full object-cover" loading="lazy" />
+        <img
+          src={image.url!}
+          alt={alt}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          onError={image.onError}
+        />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-white/35">
           <Disc3 size={iconSize} strokeWidth={1.5} />
@@ -39,15 +64,20 @@ export function CoverBanner({
   seed?: string
   className?: string
 }) {
-  const url = coverUrl(cover)
+  const image = useCover(cover)
   return (
     <div
       className={cn('overflow-hidden bg-card', className)}
-      style={url ? undefined : { background: fallbackGradient(seed ?? '') }}
+      style={{ background: fallbackGradient(seed ?? '') }}
     >
-      {url && (
+      {image.show && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img
+          src={image.url!}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          onError={image.onError}
+        />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/10" />
     </div>

@@ -19,6 +19,8 @@ type TrackRowProps = {
   showAlbum?: boolean
   showDate?: boolean
   playlistId?: string
+  onMoveUp?: () => void
+  onMoveDown?: () => void
 }
 
 export function TrackRow({
@@ -30,6 +32,8 @@ export function TrackRow({
   showAlbum = true,
   showDate = false,
   playlistId,
+  onMoveUp,
+  onMoveDown,
 }: TrackRowProps) {
   const { play, toggle, current, isPlaying } = usePlayer()
   const isCurrent = current?.id === track.id
@@ -145,6 +149,8 @@ export function TrackRow({
           canDelete={Boolean(viewerId && track.uploaderId === viewerId)}
           canReport={Boolean(viewerId)}
           playlistId={playlistId}
+          onMoveUp={onMoveUp}
+          onMoveDown={onMoveDown}
         />
       </div>
     </div>

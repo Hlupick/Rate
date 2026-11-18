@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
   can_upload INTEGER NOT NULL DEFAULT 0,
   is_admin INTEGER NOT NULL DEFAULT 0,
   is_banned INTEGER NOT NULL DEFAULT 0,
+  session_version INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL
 );
 
@@ -118,13 +119,21 @@ CREATE INDEX IF NOT EXISTS idx_tracks_artist ON tracks(artist);
 CREATE INDEX IF NOT EXISTS idx_tracks_created ON tracks(created_at);
 CREATE INDEX IF NOT EXISTS idx_tracks_play_count ON tracks(play_count);
 CREATE INDEX IF NOT EXISTS idx_plays_user ON plays(user_id, played_at);
+CREATE INDEX IF NOT EXISTS idx_plays_track_user ON plays(track_id, user_id, played_at);
 CREATE INDEX IF NOT EXISTS idx_playlist_tracks ON playlist_tracks(playlist_id, position);
+CREATE INDEX IF NOT EXISTS idx_playlist_tracks_track ON playlist_tracks(track_id);
+CREATE INDEX IF NOT EXISTS idx_playlists_owner ON playlists(owner_id);
+CREATE INDEX IF NOT EXISTS idx_playlist_drafts_playlist ON playlist_drafts(playlist_id);
+CREATE INDEX IF NOT EXISTS idx_likes_track ON likes(track_id);
 CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_invites_code ON invites(code);
 `
 
 function createDb() {
   const db = new DatabaseSync(path.join(STORAGE_DIR, 'monah.db'))
+  // Several Next.js workers can open the database during a build; wait for
+  // other writers instead of failing with SQLITE_BUSY.
+  db.exec('PRAGMA busy_timeout = 10000')
   db.exec(SCHEMA)
   // Lightweight migrations for databases created before a column existed.
   const migrations = [
@@ -138,6 +147,7 @@ function createDb() {
     'ALTER TABLE playlists ADD COLUMN avatar TEXT',
     'ALTER TABLE users ADD COLUMN avatar TEXT',
     'ALTER TABLE users ADD COLUMN cover TEXT',
+    'ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
   ]
   for (const sql of migrations) {
     try {

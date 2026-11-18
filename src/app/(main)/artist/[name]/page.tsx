@@ -17,12 +17,13 @@ export async function generateMetadata({
   params: Promise<{ name: string }>
 }): Promise<Metadata> {
   const { name } = await params
-  return { title: decodeURIComponent(name) }
+  // Next.js already decodes route params; decoding twice breaks names like "100%".
+  return { title: name }
 }
 
 export default async function ArtistPage({ params }: { params: Promise<{ name: string }> }) {
   const { name } = await params
-  const artist = decodeURIComponent(name)
+  const artist = name
   const user = await getCurrentUser()
   const tracks = listTracks({ artist, viewerId: user?.id, sort: 'popular', limit: 200 })
 

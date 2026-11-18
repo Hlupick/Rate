@@ -92,6 +92,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [repeat, setRepeat] = useState<Repeat>('off')
   const [queueOpen, setQueueOpen] = useState(false)
   const [contextLabel, setContextLabel] = useState('')
+  const [notice, setNotice] = useState('')
+  const noticeTimer = useRef<number | null>(null)
+
+  const showNotice = useCallback((text: string) => {
+    setNotice(text)
+    if (noticeTimer.current) window.clearTimeout(noticeTimer.current)
+    noticeTimer.current = window.setTimeout(() => setNotice(''), 5000)
+  }, [])
+
+  useEffect(
+    () => () => {
+      if (noticeTimer.current) window.clearTimeout(noticeTimer.current)
+    },
+    [],
+  )
 
   const currentRef = useRef<PlayerTrack | null>(null)
   const queueRef = useRef<PlayerTrack[]>([])
@@ -572,6 +587,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onEnded={() => next()}
+        onError={() => {
+          setIsPlaying(false)
+          const track = currentRef.current
+          showNotice(
+            track ? `Не удалось воспроизвести «${track.title}»` : 'Не удалось воспроизвести трек',
+          )
+        }}
         onLoadedMetadata={(event) => {
           const audio = event.currentTarget
           if (Number.isFinite(audio.duration) && audio.duration > 0) setDuration(audio.duration)
@@ -579,6 +601,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }}
         className="hidden"
       />
+      {notice && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[152px] z-[70] flex justify-center px-4 md:bottom-[112px]">
+          <button
+            type="button"
+            onClick={() => setNotice('')}
+            className="animate-pop pointer-events-auto max-w-md rounded-full border border-line bg-[#1b1b1b]/95 px-4 py-2 text-center text-[13px] text-ink shadow-2xl backdrop-blur"
+          >
+            {notice}
+          </button>
+        </div>
+      )}
     </PlayerContext.Provider>
   )
 }

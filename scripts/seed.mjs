@@ -208,7 +208,7 @@ for (let index = 0; index < SONGS.length; index += 1) {
   const song = SONGS[index]
   const number = String(index + 1).padStart(2, '0')
   const fileName = `demo-${number}.mp3`
-  const coverName = `demo-${number}.png`
+  const coverName = `${randomUUID()}.png`
   const audioPath = path.join(TRACKS_DIR, fileName)
   const coverPath = path.join(COVERS_DIR, coverName)
 

@@ -5,9 +5,22 @@ import {
   MAX_IMAGE_BYTES,
   detectImageExtension,
   saveImageFile,
+  sweepOrphanImages,
 } from '@/lib/storage'
+import { usedImageNames } from '@/lib/queries'
 
 export const runtime = 'nodejs'
+
+const SWEEP_INTERVAL = 60 * 60_000
+let lastSweep = 0
+
+/** Delete abandoned uploads at most once an hour, without blocking the request. */
+function sweepInBackground() {
+  const now = Date.now()
+  if (now - lastSweep < SWEEP_INTERVAL) return
+  lastSweep = now
+  void sweepOrphanImages(usedImageNames()).catch(() => undefined)
+}
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
@@ -49,5 +62,6 @@ export async function POST(request: Request) {
   }
 
   const name = await saveImageFile(buffer, ext)
+  sweepInBackground()
   return NextResponse.json({ file: name })
 }

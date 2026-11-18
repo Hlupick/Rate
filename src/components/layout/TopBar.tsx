@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, LogOut, Shield, Upload, User } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LogOut, Settings, Shield, Upload, User } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
 import { Avatar } from '@/components/ui/Avatar'
 
@@ -106,6 +106,13 @@ export function TopBar({ user }: TopBarProps) {
                       className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted transition hover:bg-white/5 hover:text-ink"
                     >
                       <Upload size={15} /> Мои загрузки
+                    </Link>
+                    <Link
+                      href="/settings"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted transition hover:bg-white/5 hover:text-ink"
+                    >
+                      <Settings size={15} /> Настройки
                     </Link>
                     {user.isAdmin && (
                       <Link

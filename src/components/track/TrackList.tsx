@@ -33,6 +33,16 @@ export function TrackList({
     setOrder(tracks)
   }, [tracks])
 
+  async function persist(next: Track[]) {
+    setOrder(next)
+    if (!playlistId) return
+    await fetch(`/api/playlists/${playlistId}/reorder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trackIds: next.map((track) => track.id) }),
+    }).catch(() => undefined)
+  }
+
   async function drop(index: number) {
     const from = dragFrom.current
     dragFrom.current = null
@@ -44,15 +54,17 @@ export function TrackList({
     const insertAt = from < index ? index - 1 : index
     if (insertAt === from) return
     next.splice(insertAt, 0, moved)
-    setOrder(next)
+    await persist(next)
+  }
 
-    if (playlistId) {
-      await fetch(`/api/playlists/${playlistId}/reorder`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackIds: next.map((track) => track.id) }),
-      }).catch(() => undefined)
-    }
+  /** Keyboard/touch friendly reordering, available from the track menu. */
+  async function move(index: number, delta: number) {
+    const target = index + delta
+    if (target < 0 || target >= order.length) return
+    const next = [...order]
+    const [moved] = next.splice(index, 1)
+    next.splice(target, 0, moved)
+    await persist(next)
   }
 
   return (
@@ -112,6 +124,14 @@ export function TrackList({
               showAlbum={showAlbum}
               showDate={showDate}
               playlistId={playlistId}
+              onMoveUp={
+                reorderable && playlistId && index > 0 ? () => void move(index, -1) : undefined
+              }
+              onMoveDown={
+                reorderable && playlistId && index < order.length - 1
+                  ? () => void move(index, 1)
+                  : undefined
+              }
             />
           </div>
         ))}

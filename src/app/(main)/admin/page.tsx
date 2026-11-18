@@ -19,9 +19,8 @@ import {
   listInvites,
   listReports,
   listTracks,
-  totalStorageBytes,
 } from '@/lib/queries'
-import { QUOTAS, diskFreeBytes, formatBytes } from '@/lib/storage'
+import { QUOTAS, diskFreeBytes, formatBytes, storageUsageBytes } from '@/lib/storage'
 import { formatCount, timeAgo } from '@/lib/format'
 import { CopyButton } from '@/components/ui/CopyButton'
 import {
@@ -76,7 +75,8 @@ export default async function AdminPage({
   const invites = listInvites()
   const reports = listReports('open')
   const recent = listTracks({ limit: 12, viewerId: user.id, sort: 'new' })
-  const storageUsed = totalStorageBytes()
+  const usage = await storageUsageBytes()
+  const storageUsed = usage.tracks + usage.covers
   const free = await diskFreeBytes()
   const openReports = countOpenReports()
   const stats = libraryStats(user.id)
@@ -113,7 +113,7 @@ export default async function AdminPage({
           icon={<HardDrive size={14} />}
           label="Занято"
           value={formatBytes(storageUsed)}
-          hint={`свободно ${formatBytes(free)}`}
+          hint={`аудио ${formatBytes(usage.tracks)} · обложки ${formatBytes(usage.covers)} · свободно ${formatBytes(free)}`}
         />
         <Stat
           icon={<AlertTriangle size={14} />}

@@ -1,7 +1,20 @@
+import fsp from 'node:fs/promises'
+import path from 'node:path'
 import { NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth'
+import bcrypt from 'bcryptjs'
+import { destroySession, getCurrentUser } from '@/lib/auth'
+import { TRACKS_DIR } from '@/lib/db'
 import { removeImageFile, isValidImageName } from '@/lib/storage'
-import { updateUserProfile, usedImageNames } from '@/lib/queries'
+import {
+  countAdmins,
+  deleteUserAccount,
+  getUserPasswordHash,
+  updateUserProfile,
+  usedImageNames,
+  userImageNames,
+  userTrackFileNames,
+} from '@/lib/queries'
+import { clientIp, rateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -54,4 +67,53 @@ export async function PATCH(request: Request) {
   ])
 
   return NextResponse.json({ user: updated })
+}
+
+export async function DELETE(request: Request) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Нужен вход' }, { status: 401 })
+
+  const limiter = rateLimit(`delete-account:${user.id}:${clientIp(request)}`, 5, 15 * 60_000)
+  if (!limiter.ok) {
+    return NextResponse.json(
+      { error: 'Слишком много попыток. Повторите позже.' },
+      { status: 429, headers: { 'Retry-After': String(limiter.retryAfter) } },
+    )
+  }
+
+  let body: { password?: string }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Некорректный запрос' }, { status: 400 })
+  }
+
+  if (!bcrypt.compareSync(body.password ?? '', getUserPasswordHash(user.id) ?? '')) {
+    return NextResponse.json({ error: 'Пароль неверный' }, { status: 400 })
+  }
+  if (user.isAdmin && countAdmins() <= 1) {
+    return NextResponse.json(
+      { error: 'Нельзя удалить единственного администратора' },
+      { status: 400 },
+    )
+  }
+
+  const audioFiles = userTrackFileNames(user.id)
+  const images = userImageNames(user.id)
+
+  if (!deleteUserAccount(user.id)) {
+    return NextResponse.json({ error: 'Не удалось удалить аккаунт' }, { status: 400 })
+  }
+  await destroySession()
+
+  await Promise.all(
+    audioFiles.map((file) =>
+      fsp.unlink(path.join(TRACKS_DIR, path.basename(file))).catch(() => undefined),
+    ),
+  )
+
+  const stillUsed = usedImageNames()
+  await Promise.all(images.map((name) => removeImageFile(name, stillUsed)))
+
+  return NextResponse.json({ ok: true })
 }

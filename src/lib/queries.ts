@@ -27,6 +27,7 @@ function mapUser(row: Row): UserRecord {
     canUpload: Number(row.can_upload ?? 0) === 1,
     isAdmin: Number(row.is_admin ?? 0) === 1,
     isBanned: Number(row.is_banned ?? 0) === 1,
+    sessionVersion: Number(row.session_version ?? 0),
     passwordHash: String(row.password_hash),
   }
 }
@@ -155,6 +156,53 @@ export function updateUserProfile(
     id,
   )
   return getUserById(id)
+}
+
+/** Password hash for server-side checks; never sent to the client. */
+export function getUserPasswordHash(id: string): string | null {
+  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(id) as
+    | Row
+    | undefined
+  return row ? String(row.password_hash) : null
+}
+
+export function setUserPassword(id: string, passwordHash: string): void {
+  // Bumping session_version signs out every other device.
+  db.prepare(
+    'UPDATE users SET password_hash = ?, session_version = session_version + 1 WHERE id = ?',
+  ).run(passwordHash, id)
+}
+
+export function bumpSessionVersion(id: string): void {
+  db.prepare('UPDATE users SET session_version = session_version + 1 WHERE id = ?').run(id)
+}
+
+export function countAdmins(): number {
+  return Number((db.prepare('SELECT COUNT(*) AS n FROM users WHERE is_admin = 1').get() as Row).n)
+}
+
+export function userTrackFileNames(userId: string): string[] {
+  const rows = db
+    .prepare('SELECT file_name FROM tracks WHERE uploader_id = ?')
+    .all(userId) as Row[]
+  return rows.map((row) => String(row.file_name))
+}
+
+export function userImageNames(userId: string): string[] {
+  const rows = db
+    .prepare(
+      `SELECT avatar AS name FROM users WHERE id = ? AND avatar IS NOT NULL
+       UNION ALL SELECT cover AS name FROM users WHERE id = ? AND cover IS NOT NULL
+       UNION ALL SELECT avatar AS name FROM playlists WHERE owner_id = ? AND avatar IS NOT NULL
+       UNION ALL SELECT cover AS name FROM playlists WHERE owner_id = ? AND cover IS NOT NULL`,
+    )
+    .all(userId, userId, userId, userId) as Row[]
+  return rows.map((row) => String(row.name))
+}
+
+export function deleteUserAccount(id: string): boolean {
+  const result = db.prepare('DELETE FROM users WHERE id = ?').run(id)
+  return Number(result.changes) > 0
 }
 
 /* --------------------------------- tracks --------------------------------- */
@@ -311,7 +359,16 @@ export function trackFileNames(): string[] {
   )
 }
 
+const PLAY_DEDUPE_MS = 30_000
+
 export function recordPlay(userId: string, trackId: string) {
+  const last = db
+    .prepare(
+      'SELECT played_at FROM plays WHERE user_id = ? AND track_id = ? ORDER BY played_at DESC LIMIT 1',
+    )
+    .get(userId, trackId) as Row | undefined
+  if (last && Date.now() - Number(last.played_at) < PLAY_DEDUPE_MS) return
+
   db.prepare('INSERT INTO plays (id, user_id, track_id, played_at) VALUES (?, ?, ?, ?)').run(
     randomUUID(),
     userId,
@@ -637,10 +694,6 @@ export function userUploadStats(userId: string): { count: number; bytes: number 
     .prepare('SELECT COUNT(*) AS n, COALESCE(SUM(size), 0) AS bytes FROM tracks WHERE uploader_id = ?')
     .get(userId) as Row
   return { count: Number(row.n), bytes: Number(row.bytes) }
-}
-
-export function totalStorageBytes(): number {
-  return Number((db.prepare('SELECT COALESCE(SUM(size), 0) AS n FROM tracks').get() as Row).n)
 }
 
 export function deleteTrackAsAdmin(id: string): Track | null {

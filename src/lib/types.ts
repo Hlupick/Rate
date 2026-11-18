@@ -10,6 +10,7 @@ export type UserPublic = {
   canUpload: boolean
   isAdmin: boolean
   isBanned: boolean
+  sessionVersion: number
 }
 
 export type UserRecord = UserPublic & { passwordHash: string }

@@ -20,7 +20,7 @@ export async function GET(
   { params }: { params: Promise<{ file: string }> },
 ) {
   const { file } = await params
-  const safe = path.basename(decodeURIComponent(file))
+  const safe = path.basename(file)
   const type = TYPES[path.extname(safe).toLowerCase()]
   if (!type) return new Response('Not found', { status: 404 })
 
