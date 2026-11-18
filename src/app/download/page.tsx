@@ -157,16 +157,17 @@ export default async function DownloadPage() {
             Портативная версия запускается сразу из папки. Все изменения сайта появляются
             автоматически — переустанавливать для этого не нужно.
           </p>
-          <p className="mt-1.5 text-xs leading-relaxed text-amber-200/80">
-            При первом запуске Windows покажет «Неизвестный издатель»: нажмите «Подробнее» →
-            «Выполнить в любом случае». Подписи Microsoft у самодельной сборки нет.
-          </p>
-          <p className="mt-2 break-all font-mono text-[10px] leading-relaxed text-dim">
-            SHA-256 установщика: {desktop.installer.sha256}
-          </p>
-          <p className="break-all font-mono text-[10px] leading-relaxed text-dim">
-            SHA-256 портативной: {desktop.portable.sha256}
-          </p>
+          <details className="mt-2 text-xs leading-relaxed text-muted">
+            <summary className="cursor-pointer text-[11px] font-medium text-amber-200/80 transition hover:text-amber-100">
+              Почему Windows предупреждает
+            </summary>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-muted">
+              При первом запуске Windows покажет «Неизвестный издатель»: нажмите «Подробнее» →
+              «Выполнить в любом случае». Цифровой подписи у самодельной сборки нет, поэтому
+              предупреждение видят все. Проверить файл можно по контрольным суммам в
+              GitHub-релизе.
+            </p>
+          </details>
         </div>
       )}
 
