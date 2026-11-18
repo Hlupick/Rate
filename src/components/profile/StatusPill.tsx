@@ -26,8 +26,8 @@ export function StatusPill({
         <img
           src="/status/kotost.jpg"
           alt=""
-          width={compact ? 26 : 40}
-          height={compact ? 26 : 40}
+          width={compact ? 52 : 80}
+          height={compact ? 52 : 80}
           className="koto-cat shrink-0"
         />
       </span>

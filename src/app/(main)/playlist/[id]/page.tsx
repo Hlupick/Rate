@@ -5,6 +5,7 @@ import { Lock, Globe2 } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import {
   getPlaylist,
+  getPlaylistDrafts,
   getPlaylistTracks,
   getUserByUsername,
 } from '@/lib/queries'
@@ -14,6 +15,7 @@ import { CoverBanner } from '@/components/ui/Cover'
 import { PlayAllButton } from '@/components/track/Actions'
 import { TrackList } from '@/components/track/TrackList'
 import { PlaylistMenu } from '@/components/playlist/PlaylistMenu'
+import { PlaylistDrafts } from '@/components/playlist/PlaylistDrafts'
 import { formatTotalDuration, timeAgo, tracksWord } from '@/lib/format'
 
 export async function generateMetadata({
@@ -36,6 +38,7 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
   if (!playlist.isPublic && !isOwner && !user?.isModerator) notFound()
 
   const tracks = getPlaylistTracks(playlist.id, user?.id)
+  const drafts = isOwner ? getPlaylistDrafts(playlist.id) : []
   const owner = getUserByUsername(playlist.ownerUsername)
   const totalDuration = tracks.reduce((acc, track) => acc + track.duration, 0)
 
@@ -138,6 +141,8 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
             </>
           )}
         </div>
+
+        {isOwner && <PlaylistDrafts playlistId={playlist.id} drafts={drafts} isOwner />}
       </div>
     </div>
   )

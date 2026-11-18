@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS playlists (
   description TEXT,
   owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   is_public INTEGER NOT NULL DEFAULT 1,
+  source TEXT,
+  source_url TEXT,
   cover TEXT,
   avatar TEXT,
   created_at INTEGER NOT NULL
@@ -77,6 +79,15 @@ CREATE TABLE IF NOT EXISTS playlist_tracks (
   position INTEGER NOT NULL,
   added_at INTEGER NOT NULL,
   PRIMARY KEY (playlist_id, track_id)
+);
+
+CREATE TABLE IF NOT EXISTS playlist_drafts (
+  id TEXT PRIMARY KEY,
+  playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  artist TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS likes (
@@ -229,6 +240,7 @@ CREATE INDEX IF NOT EXISTS idx_streak_returns_month ON streak_returns(user_id, m
 CREATE INDEX IF NOT EXISTS idx_point_events_user ON point_events(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_playlist_tracks ON playlist_tracks(playlist_id, position);
 CREATE INDEX IF NOT EXISTS idx_playlist_tracks_track ON playlist_tracks(track_id);
+CREATE INDEX IF NOT EXISTS idx_playlist_drafts_playlist ON playlist_drafts(playlist_id, position);
 CREATE INDEX IF NOT EXISTS idx_playlists_owner ON playlists(owner_id);
 CREATE INDEX IF NOT EXISTS idx_likes_track ON likes(track_id);
 CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status, created_at);
@@ -256,6 +268,8 @@ function createDb() {
     'ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0',
     'ALTER TABLE playlists ADD COLUMN cover TEXT',
     'ALTER TABLE playlists ADD COLUMN avatar TEXT',
+    'ALTER TABLE playlists ADD COLUMN source TEXT',
+    'ALTER TABLE playlists ADD COLUMN source_url TEXT',
     'ALTER TABLE users ADD COLUMN avatar TEXT',
     'ALTER TABLE users ADD COLUMN cover TEXT',
     'ALTER TABLE users ADD COLUMN status TEXT',
@@ -272,8 +286,6 @@ function createDb() {
     'ALTER TABLE users ADD COLUMN last_seen_at INTEGER',
     'ALTER TABLE chat_members ADD COLUMN typing_at INTEGER NOT NULL DEFAULT 0',
     'ALTER TABLE chat_members ADD COLUMN muted INTEGER NOT NULL DEFAULT 0',
-    // Playlist import was removed; drop the placeholder table it left behind.
-    'DROP TABLE IF EXISTS playlist_drafts',
   ]
   for (const sql of migrations) {
     try {

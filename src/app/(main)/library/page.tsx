@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Heart, Library, Music4, Upload } from 'lucide-react'
+import { FileUp, Heart, Library, Music4, Upload } from 'lucide-react'
 import type { Metadata } from 'next'
 import { getCurrentUser } from '@/lib/auth'
 import { getPlaylistsByOwner, libraryStats, listTracks } from '@/lib/queries'
@@ -74,6 +74,12 @@ export default async function LibraryPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/import"
+            className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-xs font-medium text-muted transition hover:border-white/30 hover:text-ink"
+          >
+            <FileUp size={14} /> Импорт
+          </Link>
           <CreatePlaylistButton />
         </div>
       </div>
