@@ -14,6 +14,10 @@ REMOTE="$(git rev-parse origin/main)"
 if [ "$LOCAL" = "$REMOTE" ]; then
   exit 0
 fi
+FAILED_FILE=/tmp/rate-auto-deploy.failed
+if [ -f "$FAILED_FILE" ] && [ "$(cat "$FAILED_FILE")" = "$REMOTE" ]; then
+  exit 0
+fi
 
 PREVIOUS="$(docker image inspect monah-app:latest --format '{{.Id}}' 2>/dev/null || true)"
 if [ -n "$PREVIOUS" ]; then
@@ -26,6 +30,7 @@ echo "$(date -Is) deploying $APP_BUILD_ID"
 
 if ! docker compose build app; then
   echo "$(date -Is) build failed, keeping the running version"
+  echo "$REMOTE" > "$FAILED_FILE"
   git reset --hard "$LOCAL"
   exit 1
 fi
@@ -49,8 +54,10 @@ if [ "$healthy" -ne 1 ]; then
     docker tag monah-app:previous monah-app:latest
     docker compose up -d
   fi
+  echo "$REMOTE" > "$FAILED_FILE"
   git reset --hard "$LOCAL"
   exit 1
 fi
 
+rm -f "$FAILED_FILE"
 echo "$(date -Is) deployed $APP_BUILD_ID"
