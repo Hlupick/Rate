@@ -5,4 +5,4 @@ export function localDay(date = new Date()): string {
 }
 
 /** Seconds of listening that close the day. Mirrors STREAK_GOAL_SECONDS on the server. */
-export const STREAK_GOAL_SECONDS = 60
+export const STREAK_GOAL_SECONDS = 30 * 60

@@ -93,6 +93,14 @@ CREATE TABLE IF NOT EXISTS listening_days (
   PRIMARY KEY (user_id, day)
 );
 
+CREATE TABLE IF NOT EXISTS streak_returns (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day TEXT NOT NULL,
+  month TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, day)
+);
+
 CREATE TABLE IF NOT EXISTS user_frames (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   frame TEXT NOT NULL,
@@ -176,6 +184,7 @@ CREATE INDEX IF NOT EXISTS idx_tracks_play_count ON tracks(play_count);
 CREATE INDEX IF NOT EXISTS idx_plays_user ON plays(user_id, played_at);
 CREATE INDEX IF NOT EXISTS idx_plays_track_user ON plays(track_id, user_id, played_at);
 CREATE INDEX IF NOT EXISTS idx_listening_days_user ON listening_days(user_id, day);
+CREATE INDEX IF NOT EXISTS idx_streak_returns_month ON streak_returns(user_id, month);
 CREATE INDEX IF NOT EXISTS idx_point_events_user ON point_events(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_playlist_tracks ON playlist_tracks(playlist_id, position);
 CREATE INDEX IF NOT EXISTS idx_playlist_tracks_track ON playlist_tracks(track_id);

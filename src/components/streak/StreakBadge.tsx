@@ -1,15 +1,20 @@
 'use client'
 
+import { Shield } from 'lucide-react'
 import { formatDuration, plural } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { StreakFlame, streakTextClass, streakTier } from './StreakFlame'
+import { StreakReturnButton } from './StreakReturnButton'
 import { useStreak } from './useStreak'
 
 /** Sidebar card: flame, streak length and today's progress to the minute. */
 export function StreakBadge({ className }: { className?: string }) {
   const streak = useStreak()
-  const days = streak?.current ?? 0
-  const goal = streak?.goal ?? 60
+  const current = streak?.current ?? 0
+  const atRisk = streak?.canReturn ? streak.atRisk : 0
+  const days = current > 0 ? current : atRisk
+  const underThreat = current < 1 && atRisk > 0
+  const goal = streak?.goal ?? 30 * 60
   const todaySeconds = streak?.todaySeconds ?? 0
   const done = todaySeconds >= goal
   const percent = Math.min(100, Math.round((todaySeconds / goal) * 100))
@@ -18,7 +23,11 @@ export function StreakBadge({ className }: { className?: string }) {
   return (
     <div className={cn('rounded-lg bg-panel px-3 py-3', className)}>
       <div className="flex items-center gap-3">
-        <StreakFlame days={days} size={30} className={streak ? undefined : 'opacity-40'} />
+        <StreakFlame
+          days={days}
+          size={30}
+          className={cn(streak ? undefined : 'opacity-40', underThreat && 'opacity-80')}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-1.5">
             <span
@@ -29,12 +38,14 @@ export function StreakBadge({ className }: { className?: string }) {
             >
               {streak ? days : '—'}
             </span>
-            <span className="text-[11px] text-muted">
-              {plural(days, 'день', 'дня', 'дней')} подряд
+            <span className={cn('text-[11px]', underThreat ? 'text-amber-200' : 'text-muted')}>
+              {underThreat
+                ? `${plural(days, 'день', 'дня', 'дней')} под угрозой`
+                : `${plural(days, 'день', 'дня', 'дней')} подряд`}
             </span>
           </div>
           <div className="mt-1.5 flex items-center justify-between gap-2 text-[10.5px] text-dim">
-            <span>{done ? 'Сегодня продлено' : 'Слушайте 1 минуту в день'}</span>
+            <span>{done ? 'Сегодня продлено' : 'Слушайте 30 минут в день'}</span>
             <span className="tabular-nums">
               {formatDuration(Math.min(todaySeconds, goal))} / {formatDuration(goal)}
             </span>
@@ -53,6 +64,27 @@ export function StreakBadge({ className }: { className?: string }) {
           style={{ width: `${percent}%` }}
         />
       </div>
+
+      {streak && (
+        <div className="mt-2 flex items-center justify-between gap-2 text-[10.5px] text-dim">
+          <span className="inline-flex items-center gap-1">
+            <Shield size={10} aria-hidden />
+            Возвраты
+          </span>
+          <span className="tabular-nums">
+            {streak.returnsLeft} из {streak.returnsLimit}
+          </span>
+        </div>
+      )}
+
+      {underThreat && streak && (
+        <div className="mt-2 rounded-md border border-amber-400/25 bg-amber-500/10 px-2.5 py-2">
+          <p className="text-[10.5px] leading-snug text-amber-100/90">
+            Вчерашний день пропущен. Верните серию до конца дня — иначе она начнётся заново.
+          </p>
+          <StreakReturnButton returnsLeft={streak.returnsLeft} className="mt-2 w-full" />
+        </div>
+      )}
 
       {tier >= 2 && (
         <p className="mt-2 text-[10.5px] text-amber-200/80">

@@ -406,9 +406,11 @@ export function recentlyPlayed(userId: string, limit = 8): Track[] {
 /* --------------------------------- streaks -------------------------------- */
 
 /** Listening of at least this many seconds closes the day and extends the streak. */
-export const STREAK_GOAL_SECONDS = 60
+export const STREAK_GOAL_SECONDS = 30 * 60
 /** Hard ceiling per day so a stuck client cannot inflate the counter. */
 export const STREAK_DAY_CAP_SECONDS = 6 * 60 * 60
+/** Manual "save yesterday" actions available in one calendar month. */
+export const STREAK_RETURNS_PER_MONTH = 5
 
 export type StreakState = {
   /** Consecutive days with the goal reached, ending today or yesterday. */
@@ -417,6 +419,13 @@ export type StreakState = {
   best: number
   /** Seconds listened on the requested day. */
   todaySeconds: number
+  /** Returns left in the viewer's calendar month. */
+  returnsLeft: number
+  returnsLimit: number
+  /** Yesterday was missed, but the day before kept the streak: the 24h window is open. */
+  canReturn: boolean
+  /** Length of the streak that can still be saved today. */
+  atRisk: number
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -440,37 +449,82 @@ export function isStreakMilestone(days: number): boolean {
   return days === 10 || days === 30 || (days >= 50 && days % 50 === 0)
 }
 
-export function getStreak(userId: string, day: string): StreakState {
-  const rows = db
-    .prepare(
-      'SELECT day, seconds FROM listening_days WHERE user_id = ? AND seconds >= ? ORDER BY day ASC',
-    )
+/** Every day that counts towards the streak: closed by listening or saved by a return. */
+function closedDays(userId: string): Set<string> {
+  const listened = db
+    .prepare('SELECT day FROM listening_days WHERE user_id = ? AND seconds >= ?')
     .all(userId, STREAK_GOAL_SECONDS) as Row[]
+  const returned = db
+    .prepare('SELECT day FROM streak_returns WHERE user_id = ?')
+    .all(userId) as Row[]
+  return new Set([...listened, ...returned].map((row) => String(row.day)))
+}
 
-  const days = rows.map((row) => String(row.day))
+function runLength(closed: Set<string>, day: string): number {
+  let length = 0
+  let cursor = day
+  while (closed.has(cursor)) {
+    length += 1
+    cursor = shiftDay(cursor, -1)
+  }
+  return length
+}
+
+function returnsUsed(userId: string, month: string): number {
+  const row = db
+    .prepare('SELECT COUNT(*) AS total FROM streak_returns WHERE user_id = ? AND month = ?')
+    .get(userId, month) as Row | undefined
+  return Number(row?.total ?? 0)
+}
+
+function isDayClosed(userId: string, day: string): boolean {
+  const listened = db
+    .prepare('SELECT seconds FROM listening_days WHERE user_id = ? AND day = ?')
+    .get(userId, day) as Row | undefined
+  if (Number(listened?.seconds ?? 0) >= STREAK_GOAL_SECONDS) return true
+  return Boolean(
+    db.prepare('SELECT 1 FROM streak_returns WHERE user_id = ? AND day = ?').get(userId, day),
+  )
+}
+
+export function getStreak(userId: string, day: string): StreakState {
+  const closed = closedDays(userId)
+  const yesterday = shiftDay(day, -1)
+  const before = shiftDay(day, -2)
+
   const todayRow = db
     .prepare('SELECT seconds FROM listening_days WHERE user_id = ? AND day = ?')
     .get(userId, day) as Row | undefined
   const todaySeconds = Number(todayRow?.seconds ?? 0)
 
-  const closed = new Set(days)
-  let cursor = closed.has(day) ? day : shiftDay(day, -1)
-  let current = 0
-  while (closed.has(cursor)) {
-    current += 1
-    cursor = shiftDay(cursor, -1)
-  }
+  const current = runLength(closed, closed.has(day) ? day : yesterday)
 
+  const sorted = Array.from(closed).sort()
   let best = 0
   let run = 0
   let previous: string | null = null
-  for (const dayKeyValue of days) {
+  for (const dayKeyValue of sorted) {
     run = previous && shiftDay(previous, 1) === dayKeyValue ? run + 1 : 1
     if (run > best) best = run
     previous = dayKeyValue
   }
 
-  return { current, best, todaySeconds }
+  const returnsLeft = Math.max(
+    0,
+    STREAK_RETURNS_PER_MONTH - returnsUsed(userId, day.slice(0, 7)),
+  )
+  const canReturn = !closed.has(yesterday) && closed.has(before) && returnsLeft > 0
+  const atRisk = canReturn ? runLength(closed, before) : 0
+
+  return {
+    current,
+    best,
+    todaySeconds,
+    returnsLeft,
+    returnsLimit: STREAK_RETURNS_PER_MONTH,
+    canReturn,
+    atRisk,
+  }
 }
 
 export function addListeningTime(userId: string, day: string, seconds: number): number {
@@ -486,6 +540,74 @@ export function addListeningTime(userId: string, day: string, seconds: number): 
     )
     .get(userId, day, value, STREAK_DAY_CAP_SECONDS) as Row | undefined
   return Number(row?.seconds ?? 0)
+}
+
+export type StreakReturnResult =
+  | { ok: true; streak: StreakState }
+  | { ok: false; status: 400 | 409; error: string; streak: StreakState }
+
+/**
+ * Saves yesterday with one monthly return. The 24 hour window is the current
+ * calendar day: after midnight the missed day can no longer be restored.
+ */
+export function claimStreakReturn(userId: string, day: string): StreakReturnResult {
+  const missed = shiftDay(day, -1)
+  const before = shiftDay(day, -2)
+
+  db.exec('BEGIN IMMEDIATE')
+  try {
+    if (isDayClosed(userId, missed)) {
+      db.exec('ROLLBACK')
+      return {
+        ok: false,
+        status: 400,
+        error: 'Этот день уже закрыт — возврат не нужен',
+        streak: getStreak(userId, day),
+      }
+    }
+    if (!isDayClosed(userId, before)) {
+      db.exec('ROLLBACK')
+      return {
+        ok: false,
+        status: 409,
+        error: 'Серия уже прервана, начните новую',
+        streak: getStreak(userId, day),
+      }
+    }
+
+    const month = day.slice(0, 7)
+    if (returnsUsed(userId, month) >= STREAK_RETURNS_PER_MONTH) {
+      db.exec('ROLLBACK')
+      return {
+        ok: false,
+        status: 409,
+        error: 'Возвраты на этот месяц закончились',
+        streak: getStreak(userId, day),
+      }
+    }
+
+    const inserted = db
+      .prepare(
+        `INSERT OR IGNORE INTO streak_returns (user_id, day, month, created_at)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .run(userId, missed, month, Date.now())
+    if (Number(inserted.changes) === 0) {
+      db.exec('ROLLBACK')
+      return {
+        ok: false,
+        status: 400,
+        error: 'Этот день уже возвращён',
+        streak: getStreak(userId, day),
+      }
+    }
+    db.exec('COMMIT')
+  } catch (error) {
+    db.exec('ROLLBACK')
+    throw error
+  }
+
+  return { ok: true, streak: getStreak(userId, day) }
 }
 
 /** Total counted listening time across every day on record. */

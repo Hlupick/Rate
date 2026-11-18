@@ -48,5 +48,9 @@ export async function GET(request: Request) {
     goal: STREAK_GOAL_SECONDS,
     todaySeconds: self ? streak.todaySeconds : null,
     self,
+    returnsLeft: self ? streak.returnsLeft : null,
+    returnsLimit: streak.returnsLimit,
+    canReturn: self ? streak.canReturn : false,
+    atRisk: self ? streak.atRisk : 0,
   })
 }

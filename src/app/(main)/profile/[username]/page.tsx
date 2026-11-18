@@ -13,6 +13,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { CoverBanner } from '@/components/ui/Cover'
 import { ProfileEditor } from '@/components/profile/ProfileEditor'
 import { StreakChip } from '@/components/streak/StreakChip'
+import { StreakReturnsChip } from '@/components/streak/StreakReturnsChip'
 import { StatusPill } from '@/components/profile/StatusPill'
 import { PointsHint } from '@/components/profile/PointsHint'
 import { formatCount, formatTotalDuration } from '@/lib/format'
@@ -105,6 +106,7 @@ export default async function ProfilePage({
                     </span>
                   </PointsHint>
                 )}
+                {isSelf && <StreakReturnsChip />}
               </div>
             )}
             {profile.bio && <p className="mt-2 max-w-xl text-sm text-muted">{profile.bio}</p>}

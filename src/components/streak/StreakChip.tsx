@@ -20,21 +20,30 @@ export function StreakChip({
   variant?: 'default' | 'glass'
 }) {
   const streak = useStreak(username)
-  if (!streak || streak.current < 1) return null
+  const current = streak?.current ?? 0
+  const atRisk = streak?.canReturn ? streak.atRisk : 0
+  const days = current > 0 ? current : atRisk
+  if (!streak || days < 1) return null
+
+  const underThreat = current < 1 && atRisk > 0
+  const title = underThreat
+    ? `Серия под угрозой: ${daysWord(days)}. Верните до конца дня`
+    : `Серия прослушиваний: ${daysWord(days)}`
 
   return (
     <span
-      title={`Серия прослушиваний: ${daysWord(streak.current)}`}
-      aria-label={`Серия прослушиваний: ${daysWord(streak.current)}`}
+      title={title}
+      aria-label={title}
       className={cn(
-        'inline-flex items-center gap-0.5 rounded-full border border-white/10 px-1.5 py-[1px] text-[11px] font-semibold leading-[1.4] tabular-nums',
+        'inline-flex items-center gap-0.5 rounded-full border px-1.5 py-[1px] text-[11px] font-semibold leading-[1.4] tabular-nums',
+        underThreat ? 'border-amber-400/40' : 'border-white/10',
         variant === 'glass' ? 'bg-black/40 backdrop-blur-md' : 'bg-white/[0.06]',
-        streakTextClass(streak.current),
+        streakTextClass(days),
         className,
       )}
     >
-      <StreakFlame days={streak.current} size={12} />
-      {streak.current}
+      <StreakFlame days={days} size={12} />
+      {days}
     </span>
   )
 }
