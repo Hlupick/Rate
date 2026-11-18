@@ -1,6 +1,9 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        APP_BUILD_ID: ${APP_BUILD_ID:-dev}
     restart: unless-stopped
     env_file: .env.production
     volumes:

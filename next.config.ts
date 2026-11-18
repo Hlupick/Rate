@@ -22,6 +22,9 @@ const csp = [
 const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
+  env: {
+    NEXT_PUBLIC_BUILD_ID: process.env.APP_BUILD_ID ?? 'dev',
+  },
   serverExternalPackages: ['music-metadata', 'nodemailer'],
   devIndicators: false,
   async headers() {

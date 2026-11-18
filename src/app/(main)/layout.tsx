@@ -7,6 +7,7 @@ import { BottomNav } from '@/components/layout/BottomNav'
 import { StreakCelebration } from '@/components/streak/StreakCelebration'
 import { PresenceHeartbeat } from '@/components/social/PresenceHeartbeat'
 import { ChatNotifications } from '@/components/chat/ChatNotifications'
+import { VersionWatcher } from '@/components/system/VersionWatcher'
 import Link from 'next/link'
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
@@ -55,6 +56,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       <StreakCelebration />
       {user && <PresenceHeartbeat />}
       {user && <ChatNotifications />}
+      <VersionWatcher />
     </div>
   )
 }
