@@ -378,6 +378,7 @@ export function ProfileEditor({
                         text={preset.key}
                         color={preset.key === 'boss' ? undefined : tint}
                         className="py-0.5 text-[12px]"
+                        compact
                       />
                     </button>
                   )
@@ -417,7 +418,7 @@ export function ProfileEditor({
               <div className="flex items-center gap-2 pt-1">
                 <span className="text-[11px] text-muted">Так появится в профиле:</span>
                 {label ? (
-                  <StatusPill text={label} color={tint} className="py-0.5 text-[12px]" />
+                  <StatusPill text={label} color={tint} className="py-0.5 text-[12px]" compact />
                 ) : (
                   <span className="text-[11px] text-muted">— скрыто</span>
                 )}

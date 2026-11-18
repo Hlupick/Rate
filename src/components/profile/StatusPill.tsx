@@ -6,10 +6,13 @@ export function StatusPill({
   text,
   color,
   className,
+  compact = false,
 }: {
   text: string
   color?: string | null
   className?: string
+  /** Smaller cat for the editor list; the profile keeps the big one. */
+  compact?: boolean
 }) {
   const theme = statusColorTheme(color)
   const preset = resolveStatus(text)
@@ -17,21 +20,16 @@ export function StatusPill({
 
   if (preset?.key === 'koto') {
     return (
-      <span
-        className={cn(
-          'koto-pill inline-flex max-w-full items-center rounded-full py-1 pl-1 pr-3 text-[13px] font-extrabold',
-          className,
-        )}
-      >
+      <span className={cn('koto-badge', compact && 'koto-badge-sm', className)}>
+        <span className="koto-name">{label}</span>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/status/kotost.jpg"
           alt=""
-          width={22}
-          height={22}
+          width={compact ? 26 : 40}
+          height={compact ? 26 : 40}
           className="koto-cat shrink-0"
         />
-        <span className="koto-text truncate">{label}</span>
       </span>
     )
   }
