@@ -3,7 +3,7 @@ import { SearchX } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { listArtists, listTracks, searchPlaylists } from '@/lib/queries'
 import { SearchInput } from '@/components/search/SearchInput'
-import { TrackList } from '@/components/track/TrackList'
+import { TracksPager } from '@/components/track/TracksPager'
 import { ArtistCard, PlaylistCard } from '@/components/ui/cards'
 import { CardGrid, SectionHeader } from '@/components/ui/Section'
 import type { Metadata } from 'next'
@@ -34,11 +34,16 @@ export default async function SearchPage({
   const viewerId = user?.id ?? null
   const query = (q ?? '').trim()
 
-  const tracks = genre
-    ? listTracks({ genre, limit: 40, viewerId, sort: 'popular' })
+  const PAGE = 50
+  const popularPage = !genre && !query ? listTracks({ limit: PAGE + 1, viewerId, sort: 'popular' }) : []
+  const foundPage = genre
+    ? listTracks({ genre, limit: PAGE + 1, viewerId, sort: 'popular' })
     : query
-      ? listTracks({ q: query, limit: 40, viewerId })
+      ? listTracks({ q: query, limit: PAGE + 1, viewerId })
       : []
+  const tracks = foundPage.slice(0, PAGE)
+  const tracksHasMore = foundPage.length > PAGE
+  const popular = popularPage.slice(0, PAGE)
   const artists = query ? listArtists(query, 6) : []
   const playlists = query ? searchPlaylists(query, 6) : []
 
@@ -72,8 +77,10 @@ export default async function SearchPage({
           </div>
 
           <SectionHeader title="Все треки" />
-          <TrackList
-            tracks={listTracks({ limit: 40, viewerId, sort: 'popular' })}
+          <TracksPager
+            initialTracks={popular}
+            initialHasMore={popularPage.length > PAGE}
+            params={{ sort: 'popular' }}
             viewerId={viewerId}
             label="Все треки"
             showAlbum
@@ -88,9 +95,18 @@ export default async function SearchPage({
               Жанр
             </div>
             <h1 className="mt-1 text-3xl font-extrabold capitalize tracking-tight">{genre}</h1>
-            <p className="mt-1 text-sm text-muted">{tracksWord(tracks.length)}</p>
+            <p className="mt-1 text-sm text-muted">
+              {tracksWord(tracks.length)}
+              {tracksHasMore ? '+' : ''}
+            </p>
           </div>
-          <TrackList tracks={tracks} viewerId={viewerId} label={genre} />
+          <TracksPager
+            initialTracks={tracks}
+            initialHasMore={tracksHasMore}
+            params={{ genre, sort: 'popular' }}
+            viewerId={viewerId}
+            label={genre}
+          />
         </>
       )}
 
@@ -116,7 +132,13 @@ export default async function SearchPage({
           {tracks.length > 0 && (
             <>
               <SectionHeader title="Треки" />
-              <TrackList tracks={tracks} viewerId={viewerId} label={`Поиск: ${query}`} />
+              <TracksPager
+                initialTracks={tracks}
+                initialHasMore={tracksHasMore}
+                params={{ q: query }}
+                viewerId={viewerId}
+                label={`Поиск: ${query}`}
+              />
             </>
           )}
 

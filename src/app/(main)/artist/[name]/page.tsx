@@ -5,7 +5,7 @@ import { BadgeCheck } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { listArtists, listTracks } from '@/lib/queries'
 import { PlayAllButton } from '@/components/track/Actions'
-import { TrackList } from '@/components/track/TrackList'
+import { TracksPager } from '@/components/track/TracksPager'
 import { ArtistCard } from '@/components/ui/cards'
 import { CardGrid, SectionHeader } from '@/components/ui/Section'
 import { Avatar } from '@/components/ui/Avatar'
@@ -17,20 +17,31 @@ export async function generateMetadata({
   params: Promise<{ name: string }>
 }): Promise<Metadata> {
   const { name } = await params
-  // Next.js already decodes route params; decoding twice breaks names like "100%".
-  return { title: name }
+  return { title: decodeArtist(name) }
+}
+
+/** Route params arrive percent-encoded; tolerate malformed `%` sequences. */
+function decodeArtist(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
 }
 
 export default async function ArtistPage({ params }: { params: Promise<{ name: string }> }) {
   const { name } = await params
-  const artist = name
+  const artist = decodeArtist(name)
   const user = await getCurrentUser()
-  const tracks = listTracks({ artist, viewerId: user?.id, sort: 'popular', limit: 200 })
+  const PAGE = 50
+  const allTracks = listTracks({ artist, viewerId: user?.id, sort: 'popular', limit: 201 })
+  const tracks = allTracks.slice(0, PAGE)
+  const hasMore = allTracks.length > PAGE
 
-  if (tracks.length === 0) notFound()
+  if (allTracks.length === 0) notFound()
 
-  const totalPlays = tracks.reduce((acc, track) => acc + track.playCount, 0)
-  const totalDuration = tracks.reduce((acc, track) => acc + track.duration, 0)
+  const totalPlays = allTracks.reduce((acc, track) => acc + track.playCount, 0)
+  const totalDuration = allTracks.reduce((acc, track) => acc + track.duration, 0)
   const otherArtists = listArtists(undefined, 8)
     .filter((item) => item.artist !== artist)
     .slice(0, 5)
@@ -53,7 +64,7 @@ export default async function ArtistPage({ params }: { params: Promise<{ name: s
               {artist}
             </h1>
             <p className="mt-3 text-sm text-muted">
-              {tracksWord(tracks.length)} · {formatTotalDuration(totalDuration)} ·{' '}
+              {tracksWord(allTracks.length)} · {formatTotalDuration(totalDuration)} ·{' '}
               {formatCount(totalPlays)} прослушиваний
             </p>
           </div>
@@ -62,12 +73,19 @@ export default async function ArtistPage({ params }: { params: Promise<{ name: s
 
       <div className="px-4 md:px-6">
         <div className="flex items-center justify-center gap-4 py-2 md:justify-start">
-          <PlayAllButton tracks={tracks} label={artist} />
+          <PlayAllButton tracks={allTracks} label={artist} />
         </div>
 
         <div className="mt-6">
           <h2 className="mb-3 text-lg font-bold">Популярные треки</h2>
-          <TrackList tracks={tracks} viewerId={user?.id ?? null} label={artist} showAlbum />
+          <TracksPager
+            initialTracks={tracks}
+            initialHasMore={hasMore}
+            params={{ artist, sort: 'popular' }}
+            viewerId={user?.id ?? null}
+            label={artist}
+            showAlbum
+          />
         </div>
 
         {otherArtists.length > 0 && (

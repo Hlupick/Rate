@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { getPlaylistsByOwner, libraryStats, listTracks } from '@/lib/queries'
 import { CardGrid, EmptyState, SectionHeader } from '@/components/ui/Section'
 import { PlaylistCard } from '@/components/ui/cards'
-import { TrackList } from '@/components/track/TrackList'
+import { TracksPager } from '@/components/track/TracksPager'
 import { CreatePlaylistButton } from '@/components/playlist/CreatePlaylistButton'
 import { artistsWord, tracksWord } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -49,8 +49,11 @@ export default async function LibraryPage({
 
   const stats = libraryStats(user.id)
   const playlists = getPlaylistsByOwner(user.id)
-  const liked = listTracks({ likedBy: user.id, viewerId: user.id, limit: 200 })
-  const uploads = listTracks({ uploaderId: user.id, viewerId: user.id, limit: 200 })
+  const PAGE = 50
+  const likedPage = listTracks({ likedBy: user.id, viewerId: user.id, limit: PAGE + 1 })
+  const uploadsPage = listTracks({ uploaderId: user.id, viewerId: user.id, limit: PAGE + 1 })
+  const liked = likedPage.slice(0, PAGE)
+  const uploads = uploadsPage.slice(0, PAGE)
 
   return (
     <div className="px-4 md:px-6">
@@ -118,7 +121,7 @@ export default async function LibraryPage({
                       <Heart size={40} className="text-ink/80" />
                     </div>
                     <div className="truncate text-[14px] font-semibold">Мне нравится</div>
-                    <div className="mt-0.5 text-[12.5px] text-muted">{tracksWord(liked.length)}</div>
+                    <div className="mt-0.5 text-[12.5px] text-muted">{tracksWord(stats.likes)}</div>
                   </Link>
                   {playlists.map((playlist) => (
                     <PlaylistCard key={playlist.id} playlist={playlist} />
@@ -131,7 +134,7 @@ export default async function LibraryPage({
 
         {active === 'likes' && (
           <>
-            {liked.length === 0 ? (
+            {likedPage.length === 0 ? (
               <EmptyState
                 icon={<Heart size={24} />}
                 title="Пока пусто"
@@ -140,14 +143,20 @@ export default async function LibraryPage({
                 href="/"
               />
             ) : (
-              <TrackList tracks={liked} viewerId={user.id} label="Мне нравится" />
+              <TracksPager
+                initialTracks={liked}
+                initialHasMore={likedPage.length > PAGE}
+                params={{ scope: 'likes' }}
+                viewerId={user.id}
+                label="Мне нравится"
+              />
             )}
           </>
         )}
 
         {active === 'uploads' && (
           <>
-            {uploads.length === 0 ? (
+            {uploadsPage.length === 0 ? (
               <EmptyState
                 icon={<Upload size={24} />}
                 title="Вы ещё ничего не загружали"
@@ -157,8 +166,15 @@ export default async function LibraryPage({
               />
             ) : (
               <>
-                <SectionHeader title={`Ваши треки · ${uploads.length}`} />
-                <TrackList tracks={uploads} viewerId={user.id} label="Мои загрузки" showDate />
+                <SectionHeader title={`Ваши треки · ${stats.uploads}`} />
+                <TracksPager
+                  initialTracks={uploads}
+                  initialHasMore={uploadsPage.length > PAGE}
+                  params={{ scope: 'uploads' }}
+                  viewerId={user.id}
+                  label="Мои загрузки"
+                  showDate
+                />
               </>
             )}
           </>
