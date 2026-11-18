@@ -17,6 +17,8 @@ export const STATUS_PRESETS = [
   { key: 'flight', label: 'Свободный полёт' },
   // One-off status drawn with an animated gradient and bolts. Owners below.
   { key: 'boss', label: 'ПРОСТО БОСС', exclusive: true },
+  // Staff-only status: the cat picture stays exactly as uploaded.
+  { key: 'koto', label: 'КОТОСТЬ', exclusive: true, staff: true },
 ] as const
 
 export type StatusPreset = (typeof STATUS_PRESETS)[number]
@@ -55,6 +57,18 @@ export function canUseExclusiveStatus(
   if (!status || !('exclusive' in status) || !username) return false
   const owners = EXCLUSIVE_STATUS_OWNERS[status.key]
   return Boolean(owners?.includes(username.trim().toLowerCase()))
+}
+
+/** Availability of a restricted status: owner for «БОСС», staff role for «КОТОСТЬ». */
+export function canUseStatus(
+  value: string | null | undefined,
+  user: { username?: string | null; isModerator?: boolean },
+): boolean {
+  const status = statusByKey(value)
+  if (!status) return false
+  if ('staff' in status && status.staff) return Boolean(user.isModerator)
+  if (status.key === 'boss') return canUseExclusiveStatus(status.key, user.username)
+  return true
 }
 
 /**

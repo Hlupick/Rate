@@ -17,7 +17,7 @@ import {
 import { clientIp, rateLimit } from '@/lib/rate-limit'
 import { clampAvatarFrame } from '@/lib/avatar-frame'
 import { hasFrameAccess } from '@/lib/frames'
-import { canUseExclusiveStatus, clampStatusColor, statusByKey } from '@/lib/status'
+import { canUseStatus, clampStatusColor, statusByKey } from '@/lib/status'
 
 export const runtime = 'nodejs'
 
@@ -59,8 +59,19 @@ export async function PATCH(request: Request) {
     if (!status) {
       return NextResponse.json({ error: 'Такого статуса нет' }, { status: 400 })
     }
-    if ('exclusive' in status && !canUseExclusiveStatus(status.key, user.username)) {
-      return NextResponse.json({ error: 'Этот статус доступен только его владельцу' }, { status: 403 })
+    if (
+      'exclusive' in status &&
+      !canUseStatus(status.key, { username: user.username, isModerator: user.isModerator })
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            status.key === 'koto'
+              ? 'Этот статус доступен только модераторам'
+              : 'Этот статус доступен только его владельцу',
+        },
+        { status: 403 },
+      )
     }
   }
 

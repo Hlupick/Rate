@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils'
 import {
   STATUS_COLORS,
   STATUS_PRESETS,
-  canUseExclusiveStatus,
+  canUseStatus,
   resolveStatus,
   statusColorTheme,
 } from '@/lib/status'
@@ -36,6 +36,7 @@ export function ProfileEditor({
   points,
   ownedFrames,
   isAdmin = false,
+  isModerator = false,
   username,
 }: {
   displayName: string
@@ -48,6 +49,7 @@ export function ProfileEditor({
   points: number
   ownedFrames: string[]
   isAdmin?: boolean
+  isModerator?: boolean
   username: string
 }) {
   const router = useRouter()
@@ -138,8 +140,8 @@ export function ProfileEditor({
 
   const pendingTheme = pendingBuy ? avatarFrameTheme(pendingBuy) : null
   const shortfall = pendingTheme ? Math.max(0, pendingTheme.price - balance) : 0
-  const statusOptions = STATUS_PRESETS.filter(
-    (preset) => !('exclusive' in preset) || canUseExclusiveStatus(preset.key, username),
+  const statusOptions = STATUS_PRESETS.filter((preset) =>
+    canUseStatus(preset.key, { username, isModerator }),
   )
   const visibleFrames = AVATAR_FRAMES.filter((theme) => !isExclusiveFrame(theme.key))
   const exclusiveFrames = AVATAR_FRAMES.filter(
@@ -384,9 +386,11 @@ export function ProfileEditor({
               <p className="text-[11px] text-muted">
                 Готовая подпись рядом с ником. Нажмите выбранную ещё раз, чтобы снять.
               </p>
-              {label === 'boss' ? (
+              {label === 'boss' || label === 'koto' ? (
                 <p className="pt-1 text-[11px] text-muted">
-                  У «ПРОСТО БОСС» свой стальной стиль — цвет не выбирается.
+                  {label === 'boss'
+                    ? 'У «ПРОСТО БОСС» свой стальной стиль — цвет не выбирается.'
+                    : 'У «КОТОСТИ» свой тёплый стиль с фотографией — цвет не выбирается.'}
                 </p>
               ) : (
                 <div className="flex flex-wrap items-center gap-2.5 pt-1">

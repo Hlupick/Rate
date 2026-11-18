@@ -15,6 +15,27 @@ export function StatusPill({
   const preset = resolveStatus(text)
   const label = preset?.label ?? text
 
+  if (preset?.key === 'koto') {
+    return (
+      <span
+        className={cn(
+          'koto-pill inline-flex max-w-full items-center rounded-full py-1 pl-1 pr-3 text-[13px] font-extrabold',
+          className,
+        )}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/status/kotost.jpg"
+          alt=""
+          width={22}
+          height={22}
+          className="koto-cat shrink-0"
+        />
+        <span className="koto-text truncate">{label}</span>
+      </span>
+    )
+  }
+
   if (preset?.key === 'boss') {
     return (
       <span

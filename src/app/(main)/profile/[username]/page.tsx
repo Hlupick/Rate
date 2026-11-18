@@ -158,6 +158,7 @@ export default async function ProfilePage({
                   points={points}
                   ownedFrames={ownedFrames}
                   isAdmin={profile.isAdmin}
+                  isModerator={profile.isModerator}
                   username={profile.username}
                 />
                 <Link
