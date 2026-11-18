@@ -37,6 +37,10 @@ export function artistsWord(n: number): string {
   return `${formatCount(n)} ${plural(n, 'исполнитель', 'исполнителя', 'исполнителей')}`
 }
 
+export function daysWord(n: number): string {
+  return `${formatCount(n)} ${plural(n, 'день', 'дня', 'дней')}`
+}
+
 export function timeAgo(timestamp: number): string {
   const diff = Date.now() - timestamp
   const minutes = Math.floor(diff / 60000)

@@ -10,6 +10,7 @@ import {
   getUserByUsername,
 } from '@/lib/queries'
 import { Avatar } from '@/components/ui/Avatar'
+import { StreakChip } from '@/components/streak/StreakChip'
 import { CoverBanner } from '@/components/ui/Cover'
 import { PlayAllButton } from '@/components/track/Actions'
 import { TrackList } from '@/components/track/TrackList'
@@ -69,18 +70,21 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
             )}
             <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted md:justify-start">
               {owner && (
-                <Link
-                  href={`/profile/${owner.username}`}
-                  className="inline-flex items-center gap-1.5 font-medium text-ink hover:underline"
-                >
-                  <Avatar
-                    name={owner.displayName}
-                    src={owner.avatar}
-                    className="h-5 w-5"
-                    textClassName="text-[8px]"
-                  />
-                  {owner.displayName}
-                </Link>
+                <>
+                  <Link
+                    href={`/profile/${owner.username}`}
+                    className="inline-flex items-center gap-1.5 font-medium text-ink hover:underline"
+                  >
+                    <Avatar
+                      name={owner.displayName}
+                      src={owner.avatar}
+                      className="h-5 w-5"
+                      textClassName="text-[8px]"
+                    />
+                    {owner.displayName}
+                  </Link>
+                  <StreakChip username={owner.username} />
+                </>
               )}
               <span>· {tracksWord(tracks.length)}</span>
               {drafts.length > 0 && <span>· {drafts.length} не загружено</span>}

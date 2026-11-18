@@ -7,6 +7,7 @@ import { Heart, Home, Library, ListPlus, Plus, Search, Upload } from 'lucide-rea
 import { Avatar } from '@/components/ui/Avatar'
 import { Logo } from '@/components/ui/Logo'
 import { CreatePlaylistDialog } from '@/components/playlist/CreatePlaylistDialog'
+import { StreakBadge } from '@/components/streak/StreakBadge'
 import { cn } from '@/lib/utils'
 import { tracksWord } from '@/lib/format'
 
@@ -57,6 +58,8 @@ export function Sidebar({ user, playlists }: SidebarProps) {
           })}
         </nav>
       </div>
+
+      {user && <StreakBadge />}
 
       <div className="flex min-h-0 flex-1 flex-col rounded-lg bg-panel">
         <div className="flex items-center justify-between px-3 pt-3 pb-2">

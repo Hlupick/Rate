@@ -6,6 +6,7 @@ import { TrackCard } from '@/components/track/TrackCard'
 import { RecentGrid } from '@/components/home/RecentGrid'
 import { ArtistCard, PlaylistCard } from '@/components/ui/cards'
 import { Logo } from '@/components/ui/Logo'
+import { StreakChip } from '@/components/streak/StreakChip'
 import { tracksWord } from '@/lib/format'
 
 export default async function HomePage() {
@@ -29,9 +30,12 @@ export default async function HomePage() {
 
       <div className="relative">
         <div className="flex items-end justify-between gap-4 pt-3">
-          <h1 className="text-[26px] font-extrabold tracking-tight md:text-[32px]">
-            {greeting}
-            {user ? `, ${user.displayName}` : ''}
+          <h1 className="flex flex-wrap items-center gap-2 text-[26px] font-extrabold tracking-tight md:text-[32px]">
+            <span>
+              {greeting}
+              {user ? `, ${user.displayName}` : ''}
+            </span>
+            {user && <StreakChip username={user.username} />}
           </h1>
           <div className="hidden items-center gap-2 text-xs text-dim sm:flex">
             <Logo size={18} />

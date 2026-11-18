@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { TopBar } from '@/components/layout/TopBar'
 import { PlayerBar } from '@/components/player/PlayerBar'
 import { BottomNav } from '@/components/layout/BottomNav'
+import { StreakCelebration } from '@/components/streak/StreakCelebration'
 import Link from 'next/link'
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
@@ -47,6 +48,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       </div>
       <PlayerBar />
       <BottomNav />
+      <StreakCelebration />
     </div>
   )
 }

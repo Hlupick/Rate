@@ -387,6 +387,91 @@ export function recentlyPlayed(userId: string, limit = 8): Track[] {
   return rows.map(mapTrack)
 }
 
+/* --------------------------------- streaks -------------------------------- */
+
+/** Listening of at least this many seconds closes the day and extends the streak. */
+export const STREAK_GOAL_SECONDS = 60
+/** Hard ceiling per day so a stuck client cannot inflate the counter. */
+export const STREAK_DAY_CAP_SECONDS = 6 * 60 * 60
+
+export type StreakState = {
+  /** Consecutive days with the goal reached, ending today or yesterday. */
+  current: number
+  /** Longest run on record. */
+  best: number
+  /** Seconds listened on the requested day. */
+  todaySeconds: number
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+export function isDayKey(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(`${value}T00:00:00Z`)
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
+
+export function shiftDay(day: string, offset: number): string {
+  const date = new Date(`${day}T00:00:00Z`)
+  return new Date(date.getTime() + offset * DAY_MS).toISOString().slice(0, 10)
+}
+
+export function dayKey(date = new Date()): string {
+  return date.toISOString().slice(0, 10)
+}
+
+export function isStreakMilestone(days: number): boolean {
+  return days === 10 || days === 30 || (days >= 50 && days % 50 === 0)
+}
+
+export function getStreak(userId: string, day: string): StreakState {
+  const rows = db
+    .prepare(
+      'SELECT day, seconds FROM listening_days WHERE user_id = ? AND seconds >= ? ORDER BY day ASC',
+    )
+    .all(userId, STREAK_GOAL_SECONDS) as Row[]
+
+  const days = rows.map((row) => String(row.day))
+  const todayRow = db
+    .prepare('SELECT seconds FROM listening_days WHERE user_id = ? AND day = ?')
+    .get(userId, day) as Row | undefined
+  const todaySeconds = Number(todayRow?.seconds ?? 0)
+
+  const closed = new Set(days)
+  let cursor = closed.has(day) ? day : shiftDay(day, -1)
+  let current = 0
+  while (closed.has(cursor)) {
+    current += 1
+    cursor = shiftDay(cursor, -1)
+  }
+
+  let best = 0
+  let run = 0
+  let previous: string | null = null
+  for (const dayKeyValue of days) {
+    run = previous && shiftDay(previous, 1) === dayKeyValue ? run + 1 : 1
+    if (run > best) best = run
+    previous = dayKeyValue
+  }
+
+  return { current, best, todaySeconds }
+}
+
+export function addListeningTime(userId: string, day: string, seconds: number): number {
+  const value = Math.max(0, Math.min(Math.floor(seconds), 120))
+  if (value === 0) return getStreak(userId, day).todaySeconds
+
+  const row = db
+    .prepare(
+      `INSERT INTO listening_days (user_id, day, seconds) VALUES (?, ?, ?)
+       ON CONFLICT (user_id, day) DO UPDATE
+         SET seconds = MIN(seconds + excluded.seconds, ?)
+       RETURNING seconds`,
+    )
+    .get(userId, day, value, STREAK_DAY_CAP_SECONDS) as Row | undefined
+  return Number(row?.seconds ?? 0)
+}
+
 /* ---------------------------------- likes --------------------------------- */
 
 export function toggleLike(userId: string, trackId: string): boolean {

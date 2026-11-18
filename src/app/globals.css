@@ -160,3 +160,121 @@ textarea {
   animation: eq 0.9s ease-in-out infinite;
   transform-origin: bottom;
 }
+
+/* ----------------------------- listening streak ---------------------------- */
+
+@keyframes streak-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.07);
+  }
+}
+
+.streak-breathe {
+  animation: streak-breathe 2.8s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+@keyframes streak-flicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(-1deg);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(1.05) rotate(1.5deg);
+    opacity: 0.94;
+  }
+  65% {
+    transform: scale(0.98) rotate(-2deg);
+    opacity: 1;
+  }
+}
+
+.streak-flicker {
+  animation: streak-flicker 1.7s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+@keyframes streak-spark {
+  0% {
+    transform: translateY(3px) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-13px) scale(1);
+    opacity: 0;
+  }
+}
+
+.streak-spark {
+  width: 2px;
+  height: 2px;
+  border-radius: 9999px;
+  background: #fcd34d;
+  box-shadow: 0 0 5px #fbbf24;
+  animation: streak-spark 1.9s ease-out infinite;
+}
+
+@keyframes streak-halo {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.streak-halo {
+  background: conic-gradient(
+    from 0deg,
+    rgba(251, 191, 36, 0) 0deg,
+    rgba(251, 191, 36, 0.7) 24deg,
+    rgba(251, 191, 36, 0) 56deg,
+    rgba(251, 191, 36, 0) 180deg,
+    rgba(251, 191, 36, 0.7) 204deg,
+    rgba(251, 191, 36, 0) 236deg
+  );
+  -webkit-mask: radial-gradient(circle, transparent 28%, #000 48%, transparent 74%);
+  mask: radial-gradient(circle, transparent 28%, #000 48%, transparent 74%);
+  animation: streak-halo 9s linear infinite;
+}
+
+@keyframes streak-burst {
+  0% {
+    transform: scale(0.7) translateY(6px);
+    opacity: 0;
+  }
+  45% {
+    transform: scale(1.04) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.streak-burst {
+  animation: streak-burst 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-breathe,
+  .streak-flicker,
+  .streak-spark,
+  .streak-halo,
+  .streak-burst {
+    animation: none;
+  }
+  .streak-spark {
+    display: none;
+  }
+}
+

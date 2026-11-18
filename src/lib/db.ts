@@ -93,6 +93,13 @@ CREATE TABLE IF NOT EXISTS plays (
   played_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS listening_days (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day TEXT NOT NULL,
+  seconds INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, day)
+);
+
 CREATE TABLE IF NOT EXISTS invites (
   id TEXT PRIMARY KEY,
   code TEXT NOT NULL UNIQUE,
@@ -120,6 +127,7 @@ CREATE INDEX IF NOT EXISTS idx_tracks_created ON tracks(created_at);
 CREATE INDEX IF NOT EXISTS idx_tracks_play_count ON tracks(play_count);
 CREATE INDEX IF NOT EXISTS idx_plays_user ON plays(user_id, played_at);
 CREATE INDEX IF NOT EXISTS idx_plays_track_user ON plays(track_id, user_id, played_at);
+CREATE INDEX IF NOT EXISTS idx_listening_days_user ON listening_days(user_id, day);
 CREATE INDEX IF NOT EXISTS idx_playlist_tracks ON playlist_tracks(playlist_id, position);
 CREATE INDEX IF NOT EXISTS idx_playlist_tracks_track ON playlist_tracks(track_id);
 CREATE INDEX IF NOT EXISTS idx_playlists_owner ON playlists(owner_id);

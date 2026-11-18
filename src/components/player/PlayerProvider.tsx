@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { localDay } from '@/lib/streak'
 
 export type PlayerTrack = {
   id: string
@@ -113,6 +114,41 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const playedRef = useRef<Set<string>>(new Set())
   const restoreTimeRef = useRef(0)
 
+  /* ------------------------------ listen streak --------------------------- */
+
+  const listenBuffer = useRef(0)
+  const listenBusy = useRef(false)
+  const listenOff = useRef(false)
+  const lastPlaybackTime = useRef(0)
+
+  const flushListening = useCallback(() => {
+    if (listenOff.current || listenBusy.current) return
+    const seconds = Math.floor(listenBuffer.current)
+    if (seconds < 5) return
+    listenBuffer.current -= seconds
+    listenBusy.current = true
+    fetch('/api/listen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seconds: Math.min(seconds, 60), day: localDay() }),
+    })
+      .then(async (response) => {
+        if (response.status === 401) {
+          listenOff.current = true
+          return null
+        }
+        return response.ok ? response.json() : null
+      })
+      .then((data) => {
+        if (!data) return
+        window.dispatchEvent(new CustomEvent('monah:streak', { detail: data }))
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        listenBusy.current = false
+      })
+  }, [])
+
   currentRef.current = current
   queueRef.current = queue
 
@@ -204,9 +240,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (!same) {
       audio.src = streamUrl(track.id)
       audio.dataset.track = track.id
+      lastPlaybackTime.current = 0
       audio.load()
     } else {
       audio.currentTime = 0
+      lastPlaybackTime.current = 0
     }
     setProgress(0)
     setDuration(track.duration)
@@ -368,6 +406,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setProgress(audio.currentTime)
     if (Number.isFinite(audio.duration) && audio.duration > 0) setDuration(audio.duration)
     publishPosition(audio)
+
+    // Count real playback progress for the listening streak. Jumped positions
+    // (seeks) produce a large or negative delta and are ignored.
+    const delta = audio.currentTime - lastPlaybackTime.current
+    lastPlaybackTime.current = audio.currentTime
+    if (delta > 0 && delta < 2) {
+      listenBuffer.current += delta
+      if (listenBuffer.current >= 20) flushListening()
+    }
+
     const track = currentRef.current
     if (track && !playedRef.current.has(track.id)) {
       const threshold = Math.min(30, (audio.duration || track.duration) * 0.5)

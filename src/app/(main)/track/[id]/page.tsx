@@ -7,6 +7,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { TrackAvatar } from '@/components/track/TrackAvatar'
 import { TrackHeroActions } from '@/components/track/Actions'
 import { TrackList } from '@/components/track/TrackList'
+import { StreakChip } from '@/components/streak/StreakChip'
 import { formatCount, formatDuration, timeAgo, tracksWord } from '@/lib/format'
 
 export async function generateMetadata({
@@ -129,6 +130,7 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
                     ) : (
                       '—'
                     )}
+                    {uploader && <StreakChip username={uploader.username} />}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">

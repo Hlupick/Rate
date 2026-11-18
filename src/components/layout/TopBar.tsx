@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, LogOut, Settings, Shield, Upload, User } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
 import { Avatar } from '@/components/ui/Avatar'
+import { StreakPill } from '@/components/streak/StreakPill'
 
 type TopBarProps = {
   user: {
@@ -63,6 +64,7 @@ export function TopBar({ user }: TopBarProps) {
         <div className="ml-auto flex items-center gap-2">
           {user ? (
             <>
+              <StreakPill className="md:hidden" />
               <Link
                 href="/upload"
                 className="hidden items-center gap-2 rounded-full border border-line px-4 py-1.5 text-sm font-medium text-muted transition hover:border-white/30 hover:text-ink sm:flex"

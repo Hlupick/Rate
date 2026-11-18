@@ -9,6 +9,7 @@ import { TrackList } from '@/components/track/TrackList'
 import { Avatar } from '@/components/ui/Avatar'
 import { CoverBanner } from '@/components/ui/Cover'
 import { ProfileEditor } from '@/components/profile/ProfileEditor'
+import { StreakChip } from '@/components/streak/StreakChip'
 import { formatCount } from '@/lib/format'
 
 export async function generateMetadata({
@@ -56,8 +57,9 @@ export default async function ProfilePage({
             <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
               Профиль
             </div>
-            <h1 className="mt-2 break-words text-3xl font-extrabold tracking-tight md:text-4xl xl:text-5xl">
-              {profile.displayName}
+            <h1 className="mt-2 flex flex-wrap items-center justify-center gap-2 break-words text-3xl font-extrabold tracking-tight md:justify-start md:text-4xl xl:text-5xl">
+              <span>{profile.displayName}</span>
+              <StreakChip username={profile.username} />
             </h1>
             <p className="mt-2 text-sm text-muted">
               @{profile.username} · загрузок: {uploads.length} · прослушиваний:{' '}
