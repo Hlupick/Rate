@@ -63,6 +63,15 @@ CREATE TABLE IF NOT EXISTS playlist_tracks (
   PRIMARY KEY (playlist_id, track_id)
 );
 
+CREATE TABLE IF NOT EXISTS playlist_drafts (
+  id TEXT PRIMARY KEY,
+  playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  artist TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS likes (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,

@@ -5,6 +5,7 @@ import type {
   ArtistSummary,
   Invite,
   Playlist,
+  PlaylistDraft,
   Report,
   Track,
   UserPublic,
@@ -56,6 +57,7 @@ function mapPlaylist(row: Row): Playlist {
     isPublic: Number(row.is_public ?? 1) === 1,
     createdAt: Number(row.created_at),
     trackCount: Number(row.track_count ?? 0),
+    missingCount: Number(row.missing_count ?? 0),
     cover: row.cover ? String(row.cover) : null,
     ownerName: String(row.owner_name ?? ''),
     ownerUsername: String(row.owner_username ?? ''),
@@ -323,6 +325,7 @@ export function countLikes(userId: string): number {
 const PLAYLIST_SELECT = `
   SELECT p.*,
     (SELECT COUNT(*) FROM playlist_tracks pt WHERE pt.playlist_id = p.id) AS track_count,
+    (SELECT COUNT(*) FROM playlist_drafts d WHERE d.playlist_id = p.id) AS missing_count,
     (SELECT t.cover FROM playlist_tracks pt2 JOIN tracks t ON t.id = pt2.track_id
       WHERE pt2.playlist_id = p.id ORDER BY pt2.position LIMIT 1) AS cover,
     u.display_name AS owner_name,
@@ -428,6 +431,61 @@ export function reorderPlaylist(playlistId: string, ownerId: string, orderedTrac
   const update = db.prepare('UPDATE playlist_tracks SET position = ? WHERE playlist_id = ? AND track_id = ?')
   orderedTrackIds.forEach((trackId, index) => update.run(index + 1, playlistId, trackId))
   return true
+}
+
+/* ----------------------------- playlist drafts ---------------------------- */
+
+function mapDraft(row: Row): PlaylistDraft {
+  return {
+    id: String(row.id),
+    playlistId: String(row.playlist_id),
+    position: Number(row.position),
+    title: String(row.title),
+    artist: String(row.artist ?? ''),
+    createdAt: Number(row.created_at),
+  }
+}
+
+export function getPlaylistDrafts(playlistId: string): PlaylistDraft[] {
+  const rows = db
+    .prepare('SELECT * FROM playlist_drafts WHERE playlist_id = ? ORDER BY position ASC, created_at ASC')
+    .all(playlistId) as Row[]
+  return rows.map(mapDraft)
+}
+
+function ownsPlaylist(playlistId: string, ownerId: string): boolean {
+  const row = db.prepare('SELECT owner_id FROM playlists WHERE id = ?').get(playlistId) as Row | undefined
+  return Boolean(row && row.owner_id === ownerId)
+}
+
+export function addPlaylistDraft(
+  playlistId: string,
+  ownerId: string,
+  title: string,
+  artist: string,
+  position: number,
+): boolean {
+  if (!ownsPlaylist(playlistId, ownerId)) return false
+  db.prepare(
+    'INSERT INTO playlist_drafts (id, playlist_id, position, title, artist, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+  ).run(randomUUID(), playlistId, position, title.slice(0, 200), artist.slice(0, 200), Date.now())
+  return true
+}
+
+export function deletePlaylistDraft(
+  draftId: string,
+  playlistId: string,
+  ownerId: string,
+): boolean {
+  const row = db.prepare('SELECT playlist_id FROM playlist_drafts WHERE id = ?').get(draftId) as Row | undefined
+  if (!row || String(row.playlist_id) !== playlistId) return false
+  if (!ownsPlaylist(playlistId, ownerId)) return false
+  const result = db.prepare('DELETE FROM playlist_drafts WHERE id = ?').run(draftId)
+  return Number(result.changes) > 0
+}
+
+export function clearPlaylistDrafts(playlistId: string): void {
+  db.prepare('DELETE FROM playlist_drafts WHERE playlist_id = ?').run(playlistId)
 }
 
 /* --------------------------------- artists -------------------------------- */

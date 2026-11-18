@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
-import { addTrackToPlaylist, createPlaylist, listTracks } from '@/lib/queries'
-import { normalizeText } from '@/lib/text'
+import { addPlaylistDraft, addTrackToPlaylist, createPlaylist, listTracks } from '@/lib/queries'
+import { createMatcher } from '@/lib/matching'
 import { clientIp, rateLimit } from '@/lib/rate-limit'
 
 type Row = { title: string; artist: string }
@@ -47,47 +47,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Не удалось распознать ни одного трека' }, { status: 400 })
   }
 
-  const library = listTracks({ limit: 5000 }).map((track) => ({
-    id: track.id,
-    title: normalizeText(track.title),
-    artist: normalizeText(track.artist),
-  }))
-
-  const exact = new Map<string, string>()
-  const byTitle = new Map<string, string[]>()
-  for (const track of library) {
-    exact.set(`${track.title}|${track.artist}`, track.id)
-    const bucket = byTitle.get(track.title) ?? []
-    bucket.push(track.id)
-    byTitle.set(track.title, bucket)
-  }
-
-  function findTrack(row: Row): string | null {
-    const title = normalizeText(row.title)
-    const artist = normalizeText(row.artist)
-
-    if (artist) {
-      const direct = exact.get(`${title}|${artist}`)
-      if (direct) return direct
-
-      const loose = library.find(
-        (track) =>
-          track.title === title &&
-          (track.artist.includes(artist) || artist.includes(track.artist)),
-      )
-      if (loose) return loose.id
-    }
-
-    const candidates = byTitle.get(title) ?? []
-    return candidates.length === 1 ? candidates[0] : null
-  }
+  const matcher = createMatcher(
+    listTracks({ limit: 5000 }).map((track) => ({
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+    })),
+  )
 
   const matchedIds: string[] = []
   const missing: Row[] = []
   const seen = new Set<string>()
 
   for (const row of rows) {
-    const id = findTrack(row)
+    const id = matcher(row)
     if (!id) {
       missing.push(row)
       continue
@@ -98,24 +71,17 @@ export async function POST(request: Request) {
     }
   }
 
-  if (matchedIds.length === 0) {
-    return NextResponse.json({
-      playlistId: null,
-      name,
-      matched: 0,
-      total: rows.length,
-      missing: missing.slice(0, 500),
-    })
-  }
-
   const playlist = createPlaylist(
     user.id,
     name,
-    description ?? `Импортировано ${matchedIds.length} из ${rows.length} треков.`,
+    description ?? `Импорт: ${matchedIds.length} из ${rows.length} треков.`,
   )
   for (const trackId of matchedIds) {
     addTrackToPlaylist(playlist.id, trackId, user.id)
   }
+  missing.forEach((row, index) => {
+    addPlaylistDraft(playlist.id, user.id, row.title, row.artist, index)
+  })
 
   return NextResponse.json({
     playlistId: playlist.id,

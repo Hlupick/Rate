@@ -3,11 +3,17 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { Lock, Globe2 } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
-import { getPlaylist, getPlaylistTracks, getUserByUsername } from '@/lib/queries'
+import {
+  getPlaylist,
+  getPlaylistDrafts,
+  getPlaylistTracks,
+  getUserByUsername,
+} from '@/lib/queries'
 import { Cover } from '@/components/ui/Cover'
 import { PlayAllButton } from '@/components/track/Actions'
 import { TrackList } from '@/components/track/TrackList'
 import { PlaylistMenu } from '@/components/playlist/PlaylistMenu'
+import { PlaylistDrafts } from '@/components/playlist/PlaylistDrafts'
 import { formatTotalDuration, timeAgo, tracksWord } from '@/lib/format'
 
 export async function generateMetadata({
@@ -30,6 +36,7 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
   if (!playlist.isPublic && !isOwner) notFound()
 
   const tracks = getPlaylistTracks(playlist.id, user?.id)
+  const drafts = getPlaylistDrafts(playlist.id)
   const owner = getUserByUsername(playlist.ownerUsername)
   const totalDuration = tracks.reduce((acc, track) => acc + track.duration, 0)
 
@@ -65,6 +72,7 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
                 </Link>
               )}
               <span>· {tracksWord(tracks.length)}</span>
+              {drafts.length > 0 && <span>· {drafts.length} не загружено</span>}
               {tracks.length > 0 && <span>· {formatTotalDuration(totalDuration)}</span>}
               <span>· создан {timeAgo(playlist.createdAt)}</span>
             </div>
@@ -86,18 +94,28 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
 
         <div className="mt-5">
           {tracks.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-line px-6 py-14 text-center">
-              <p className="text-base font-semibold">В плейлисте пока нет треков</p>
-              <p className="mx-auto mt-1 max-w-md text-sm text-muted">
-                Откройте любой трек, нажмите «…» и выберите «Добавить в плейлист».
-              </p>
-              <Link
-                href="/"
-                className="mt-5 inline-flex rounded-full bg-accent px-5 py-2 text-sm font-semibold text-black transition hover:bg-white"
-              >
-                Найти музыку
-              </Link>
-            </div>
+            drafts.length > 0 ? (
+              <div className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-muted">
+                Файлы этих треков ещё не загружены. Добавьте их в библиотеку, затем нажмите
+                «Проверить снова» в блоке ниже — треки подхватятся автоматически.{' '}
+                <Link href="/upload" className="text-ink underline underline-offset-2">
+                  Загрузить треки
+                </Link>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-line px-6 py-14 text-center">
+                <p className="text-base font-semibold">В плейлисте пока нет треков</p>
+                <p className="mx-auto mt-1 max-w-md text-sm text-muted">
+                  Откройте любой трек, нажмите «…» и выберите «Добавить в плейлист».
+                </p>
+                <Link
+                  href="/"
+                  className="mt-5 inline-flex rounded-full bg-accent px-5 py-2 text-sm font-semibold text-black transition hover:bg-white"
+                >
+                  Найти музыку
+                </Link>
+              </div>
+            )
           ) : (
             <>
               <TrackList
@@ -116,6 +134,8 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
             </>
           )}
         </div>
+
+        <PlaylistDrafts playlistId={playlist.id} drafts={drafts} isOwner={isOwner} />
       </div>
     </div>
   )

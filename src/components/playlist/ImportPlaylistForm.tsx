@@ -113,13 +113,11 @@ export function ImportPlaylistForm() {
               )}
             </div>
             <div className="min-w-0">
-              <h2 className="text-lg font-bold">
-                {result.matched > 0 ? 'Плейлист создан' : 'Совпадений нет'}
-              </h2>
+              <h2 className="text-lg font-bold">Плейлист создан</h2>
               <p className="mt-1 text-sm text-muted">
-                Распознано {result.total} треков, добавлено {result.matched}.
-                {result.missing.length > 0 &&
-                  ` Не найдено в библиотеке: ${result.missing.length}.`}
+                Распознано {result.total} треков, добавлено {result.matched}, не загружено{' '}
+                {result.missing.length}. Недостающие сохранены в плейлисте — когда появятся файлы,
+                нажмите там «Проверить снова».
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {result.playlistId && (
@@ -153,7 +151,8 @@ export function ImportPlaylistForm() {
               <div>
                 <div className="text-sm font-semibold">Не найдено в библиотеке</div>
                 <div className="text-xs text-muted">
-                  Загрузите эти треки и импортируйте плейлист снова.
+                  Записи сохранены в плейлисте как «не загружено». Загрузите файлы и нажмите
+                  «Проверить снова».
                 </div>
               </div>
               <button

@@ -46,6 +46,12 @@ CREATE TABLE IF NOT EXISTS playlist_tracks (
   track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
   position INTEGER NOT NULL, added_at INTEGER NOT NULL, PRIMARY KEY (playlist_id, track_id)
 );
+CREATE TABLE IF NOT EXISTS playlist_drafts (
+  id TEXT PRIMARY KEY,
+  playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL, title TEXT NOT NULL, artist TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS likes (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
@@ -99,7 +105,7 @@ if (existing > 0 && !FORCE) {
 
 if (FORCE) {
   console.log('--force: очищаю библиотеку')
-  for (const table of ['plays', 'likes', 'playlist_tracks', 'playlists', 'tracks', 'users']) {
+  for (const table of ['plays', 'likes', 'playlist_tracks', 'playlist_drafts', 'playlists', 'tracks', 'users']) {
     db.exec(`DELETE FROM ${table}`)
   }
   for (const dir of [TRACKS_DIR, COVERS_DIR]) {
