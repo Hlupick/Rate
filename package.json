@@ -9,7 +9,8 @@
     "seed": "node scripts/seed.mjs",
     "icons": "node scripts/make-icons.mjs",
     "cleanup:covers": "node scripts/cleanup-track-covers.mjs",
-    "cleanup:images": "node scripts/cleanup-images.mjs"
+    "cleanup:images": "node scripts/cleanup-images.mjs",
+    "fix:tags": "node scripts/fix-track-tags.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

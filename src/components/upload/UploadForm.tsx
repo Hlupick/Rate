@@ -3,13 +3,16 @@
 import { useCallback, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { unzip, type UnzipFileInfo } from 'fflate'
+import { parseBlob } from 'music-metadata'
 import { Check, FileAudio, Loader2, Music4, Trash2, UploadCloud, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { splitFileName, tagValue } from '@/lib/track-names'
 
 const ACCEPTED = ['.mp3', '.m4a', '.aac', '.ogg', '.opus', '.flac', '.wav']
 const MAX_SIZE = 50 * 1024 * 1024
 const MAX_BATCH = 250 * 1024 * 1024
 const MAX_FILES = 100
+const TAG_WORKERS = 3
 
 type Item = {
   key: string
@@ -17,26 +20,35 @@ type Item = {
   title: string
   artist: string
   album: string
-  status: 'idle' | 'uploading' | 'done' | 'error'
+  status: 'reading' | 'idle' | 'uploading' | 'done' | 'error'
   progress: number
   error?: string
   trackId?: string
+  /** True once the user typed into any field: tags must not overwrite it. */
+  manual?: boolean
 }
 
-function baseName(name: string) {
-  return name.replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').trim()
-}
-
-function cleanName(value: string) {
-  const base = value.split(/[\\/]/).pop() ?? ''
-  return base.replace(/^\d+[\s.\-–—_]+/, '').trim()
-}
+type Tags = { title: string; artist: string; album: string }
 
 function itemKey(name: string, size: number) {
   return `${name}-${size}-${Math.random().toString(36).slice(2, 7)}`
 }
 
-export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
+async function readTags(file: File): Promise<Tags | null> {
+  try {
+    const { common } = await parseBlob(file, { duration: false })
+    const artist = tagValue(common.artist) || tagValue(common.artists?.join(', '))
+    return {
+      title: tagValue(common.title),
+      artist: artist.slice(0, 80),
+      album: tagValue(common.album),
+    }
+  } catch {
+    return null
+  }
+}
+
+export function UploadForm() {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [items, setItems] = useState<Item[]>([])
@@ -44,6 +56,31 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
   const [publishing, setPublishing] = useState(false)
   const [unpacking, setUnpacking] = useState(false)
   const [note, setNote] = useState<string | null>(null)
+
+  /** Reads tags for freshly added files and fills the fields that are still untouched. */
+  const detectTags = useCallback(async (added: Item[]) => {
+    const queue = [...added]
+    const workers = Array.from({ length: Math.min(TAG_WORKERS, queue.length) }, async () => {
+      for (let item = queue.shift(); item; item = queue.shift()) {
+        const tags = await readTags(item.file)
+        setItems((prev) =>
+          prev.map((current) => {
+            if (current.key !== item.key) return current
+            const next: Item = {
+              ...current,
+              status: current.status === 'reading' ? 'idle' : current.status,
+            }
+            if (current.manual) return next
+            if (tags?.title) next.title = tags.title.slice(0, 120)
+            if (tags?.artist) next.artist = tags.artist
+            if (tags?.album) next.album = tags.album.slice(0, 120)
+            return next
+          }),
+        )
+      }
+    })
+    await Promise.all(workers)
+  }, [])
 
   const addFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -70,7 +107,7 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
                   bytes,
                   {
                     filter: (info: UnzipFileInfo) => {
-                      const name = cleanName(info.name)
+                      const name = cleanEntryName(info.name)
                       const fileExt = `.${name.split('.').pop()?.toLowerCase() ?? ''}`
                       if (!name || name.startsWith('.') || !ACCEPTED.includes(fileExt)) return false
                       if (info.originalSize === 0) {
@@ -97,15 +134,16 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
                 rejected.push(`${file.name} — в архиве нет подходящих аудиофайлов`)
               } else {
                 for (const name of names) {
-                  const fileName = cleanName(name)
+                  const fileName = cleanEntryName(name)
                   const data = new Uint8Array(extracted[name])
+                  const parsed = splitFileName(fileName)
                   candidates.push({
                     key: itemKey(fileName, data.length),
                     file: new File([data as BlobPart], fileName, { type: 'application/octet-stream' }),
-                    title: baseName(fileName),
-                    artist: defaultArtist ?? '',
+                    title: parsed.title,
+                    artist: parsed.artist,
                     album: '',
-                    status: 'idle',
+                    status: 'reading',
                     progress: 0,
                   })
                 }
@@ -125,13 +163,14 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
             rejected.push(`${file.name} — больше 50 МБ`)
             continue
           }
+          const parsed = splitFileName(file.name)
           candidates.push({
             key: itemKey(file.name, file.size),
             file,
-            title: baseName(file.name),
-            artist: defaultArtist ?? '',
+            title: parsed.title,
+            artist: parsed.artist,
             album: '',
-            status: 'idle',
+            status: 'reading',
             progress: 0,
           })
         }
@@ -154,16 +193,23 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
         }
 
         setNote(rejected.length > 0 ? rejected.join(' · ') : null)
-        if (accepted.length > 0) setItems((prev) => [...prev, ...accepted])
+        if (accepted.length > 0) {
+          setItems((prev) => [...prev, ...accepted])
+          void detectTags(accepted)
+        }
       } finally {
         setUnpacking(false)
       }
     },
-    [defaultArtist, items],
+    [detectTags, items],
   )
 
-  function update(key: string, patch: Partial<Item>) {
-    setItems((prev) => prev.map((item) => (item.key === key ? { ...item, ...patch } : item)))
+  function update(key: string, patch: Partial<Item>, manual = false) {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.key === key ? { ...item, ...patch, manual: manual || item.manual } : item,
+      ),
+    )
   }
 
   function remove(key: string) {
@@ -214,6 +260,7 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
     if (publishing) return
     setPublishing(true)
     for (const item of items) {
+      if (item.status === 'reading') continue
       if (item.status === 'idle' || item.status === 'error') {
         await uploadOne(item)
       }
@@ -222,6 +269,7 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
     router.refresh()
   }
 
+  const reading = items.some((item) => item.status === 'reading')
   const pending = items.filter((item) => item.status === 'idle' || item.status === 'error')
   const done = items.filter((item) => item.status === 'done').length
 
@@ -300,6 +348,11 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
                     <span className="shrink-0 text-[11px] text-dim">
                       {(item.file.size / 1024 / 1024).toFixed(1)} МБ
                     </span>
+                    {item.status === 'reading' && (
+                      <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted">
+                        <Loader2 size={12} className="animate-spin" /> читаем теги
+                      </span>
+                    )}
                     {item.status === 'uploading' && (
                       <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted">
                         <Loader2 size={12} className="animate-spin" /> {item.progress}%
@@ -323,19 +376,25 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
                     <div className="mt-2 grid gap-2 sm:grid-cols-3">
                       <input
                         value={item.title}
-                        onChange={(event) => update(item.key, { title: event.target.value })}
+                        onChange={(event) =>
+                          update(item.key, { title: event.target.value }, true)
+                        }
                         placeholder="Название"
                         className="rounded border border-line bg-panel px-2.5 py-1.5 text-xs placeholder:text-dim focus:border-white/30"
                       />
                       <input
                         value={item.artist}
-                        onChange={(event) => update(item.key, { artist: event.target.value })}
+                        onChange={(event) =>
+                          update(item.key, { artist: event.target.value }, true)
+                        }
                         placeholder="Исполнитель"
                         className="rounded border border-line bg-panel px-2.5 py-1.5 text-xs placeholder:text-dim focus:border-white/30"
                       />
                       <input
                         value={item.album}
-                        onChange={(event) => update(item.key, { album: event.target.value })}
+                        onChange={(event) =>
+                          update(item.key, { album: event.target.value }, true)
+                        }
                         placeholder="Альбом (необязательно)"
                         className="rounded border border-line bg-panel px-2.5 py-1.5 text-xs placeholder:text-dim focus:border-white/30"
                       />
@@ -368,11 +427,12 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
 
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
             <p className="text-xs text-muted">
-              Если оставить название и исполнителя пустыми, они будут взяты из тегов файла.
+              Исполнитель, название и альбом берутся из тегов файла. Если тегов нет — из имени
+              файла вида «Исполнитель - Название». Любое поле можно поправить вручную.
             </p>
             <button
               onClick={publishAll}
-              disabled={publishing || pending.length === 0}
+              disabled={publishing || reading || pending.length === 0}
               className="flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-semibold text-black transition hover:bg-white disabled:opacity-40"
             >
               {publishing ? (
@@ -382,7 +442,9 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
               )}
               {publishing
                 ? 'Публикуем…'
-                : `Опубликовать ${pending.length > 0 ? pending.length : ''}`.trim()}
+                : reading
+                  ? 'Читаем теги…'
+                  : `Опубликовать ${pending.length > 0 ? pending.length : ''}`.trim()}
             </button>
           </div>
           {done > 0 && (
@@ -394,4 +456,10 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
       )}
     </div>
   )
+}
+
+/** ZIP entries may contain folders; keep only the file name. */
+function cleanEntryName(value: string) {
+  const base = value.split(/[\\/]/).pop() ?? ''
+  return base.replace(/^\d+[\s.\-–—_]+/, '').trim()
 }

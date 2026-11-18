@@ -66,7 +66,7 @@ export default async function UploadPage() {
               )}
             </div>
             <div className="mt-5">
-              <UploadForm defaultArtist={user.displayName} />
+              <UploadForm />
             </div>
           </>
         ) : (

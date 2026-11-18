@@ -8,6 +8,7 @@ import { TRACKS_DIR } from '@/lib/db'
 import { createTrack, userUploadStats } from '@/lib/queries'
 import { QUOTAS, diskFreeBytes, formatBytes } from '@/lib/storage'
 import { rateLimit } from '@/lib/rate-limit'
+import { splitFileName, tagValue } from '@/lib/track-names'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -122,16 +123,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Не удалось прочитать аудиофайл' }, { status: 415 })
   }
 
-  const fallbackTitle = file.name
-    .replace(/\.[^.]+$/, '')
-    .replace(/[_]+/g, ' ')
-    .trim()
-    .slice(0, 120)
+  const parsed = splitFileName(file.name)
+  const tagArtist =
+    tagValue(metadata.common.artist) || tagValue(metadata.common.artists?.join(', '))
 
-  const title = limit(form.get('title'), 120) || metadata.common.title?.trim() || fallbackTitle
+  const title =
+    limit(form.get('title'), 120) || tagValue(metadata.common.title) || parsed.title || 'Без названия'
   const artist =
-    limit(form.get('artist'), 80) || metadata.common.artist?.trim() || user.displayName
-  const album = limit(form.get('album'), 120) || metadata.common.album?.trim() || null
+    limit(form.get('artist'), 80) || tagArtist.slice(0, 80) || parsed.artist || user.displayName
+  const album = limit(form.get('album'), 120) || tagValue(metadata.common.album) || null
   const genre = metadata.common.genre?.[0]?.slice(0, 40) ?? null
   const duration = metadata.format.duration ?? 0
 
