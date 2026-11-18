@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+storage
+backups
+*.log
+.env
+.env.local
+.env.production
+next-env.d.ts
+tsconfig.tsbuildinfo
+shots*

@@ -1,0 +1,135 @@
+import { DatabaseSync } from 'node:sqlite'
+import fs from 'node:fs'
+import path from 'node:path'
+
+const globalForDb = globalThis as unknown as { __monahDb?: DatabaseSync }
+
+export const STORAGE_DIR = path.join(process.cwd(), 'storage')
+export const TRACKS_DIR = path.join(STORAGE_DIR, 'tracks')
+export const COVERS_DIR = path.join(STORAGE_DIR, 'covers')
+
+for (const dir of [STORAGE_DIR, TRACKS_DIR, COVERS_DIR]) {
+  fs.mkdirSync(dir, { recursive: true })
+}
+
+const SCHEMA = `
+PRAGMA journal_mode = WAL;
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  username TEXT NOT NULL UNIQUE,
+  display_name TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  bio TEXT,
+  can_upload INTEGER NOT NULL DEFAULT 0,
+  is_admin INTEGER NOT NULL DEFAULT 0,
+  is_banned INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tracks (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  artist TEXT NOT NULL,
+  album TEXT,
+  genre TEXT,
+  duration REAL NOT NULL DEFAULT 0,
+  file_name TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  size INTEGER NOT NULL DEFAULT 0,
+  cover TEXT,
+  uploader_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  play_count INTEGER NOT NULL DEFAULT 0,
+  search_text TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS playlists (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  is_public INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS playlist_tracks (
+  playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+  track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL,
+  added_at INTEGER NOT NULL,
+  PRIMARY KEY (playlist_id, track_id)
+);
+
+CREATE TABLE IF NOT EXISTS likes (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, track_id)
+);
+
+CREATE TABLE IF NOT EXISTS plays (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+  played_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS invites (
+  id TEXT PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  created_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  max_uses INTEGER NOT NULL DEFAULT 1,
+  uses INTEGER NOT NULL DEFAULT 0,
+  used_by TEXT,
+  used_at INTEGER,
+  expires_at INTEGER,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS reports (
+  id TEXT PRIMARY KEY,
+  track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+  reporter_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  reason TEXT NOT NULL,
+  comment TEXT,
+  status TEXT NOT NULL DEFAULT 'open',
+  created_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_tracks_artist ON tracks(artist);
+CREATE INDEX IF NOT EXISTS idx_tracks_created ON tracks(created_at);
+CREATE INDEX IF NOT EXISTS idx_tracks_play_count ON tracks(play_count);
+CREATE INDEX IF NOT EXISTS idx_plays_user ON plays(user_id, played_at);
+CREATE INDEX IF NOT EXISTS idx_playlist_tracks ON playlist_tracks(playlist_id, position);
+CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_invites_code ON invites(code);
+`
+
+function createDb() {
+  const db = new DatabaseSync(path.join(STORAGE_DIR, 'monah.db'))
+  db.exec(SCHEMA)
+  // Lightweight migrations for databases created before a column existed.
+  const migrations = [
+    'ALTER TABLE tracks ADD COLUMN genre TEXT',
+    'ALTER TABLE users ADD COLUMN can_upload INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0',
+  ]
+  for (const sql of migrations) {
+    try {
+      db.exec(sql)
+    } catch {
+      /* column already exists */
+    }
+  }
+  return db
+}
+
+export const db = globalForDb.__monahDb ?? createDb()
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForDb.__monahDb = db
+}
