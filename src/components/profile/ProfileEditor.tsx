@@ -17,7 +17,13 @@ import {
 } from '@/lib/avatar-frame'
 import { formatCount } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { STATUS_COLORS, STATUS_MAX_LENGTH, clampStatus, countStatusChars, limitStatusChars, statusColorTheme } from '@/lib/status'
+import {
+  STATUS_COLORS,
+  STATUS_PRESETS,
+  canUseExclusiveStatus,
+  resolveStatus,
+  statusColorTheme,
+} from '@/lib/status'
 
 export function ProfileEditor({
   displayName,
@@ -48,7 +54,7 @@ export function ProfileEditor({
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(displayName)
   const [about, setAbout] = useState(bio ?? '')
-  const [label, setLabel] = useState(status ?? '')
+  const [label, setLabel] = useState<string>(resolveStatus(status)?.key ?? '')
   const [tint, setTint] = useState(statusColor)
   const [newAvatar, setNewAvatar] = useState(avatar)
   const [newCover, setNewCover] = useState(cover)
@@ -112,7 +118,7 @@ export function ProfileEditor({
         body: JSON.stringify({
           displayName: name.trim(),
           bio: about.trim() || null,
-          status: clampStatus(label) || null,
+          status: label || null,
           statusColor: tint,
           avatar: newAvatar,
           cover: newCover,
@@ -132,6 +138,9 @@ export function ProfileEditor({
 
   const pendingTheme = pendingBuy ? avatarFrameTheme(pendingBuy) : null
   const shortfall = pendingTheme ? Math.max(0, pendingTheme.price - balance) : 0
+  const statusOptions = STATUS_PRESETS.filter(
+    (preset) => !('exclusive' in preset) || canUseExclusiveStatus(preset.key, username),
+  )
   const visibleFrames = AVATAR_FRAMES.filter((theme) => !isExclusiveFrame(theme.key))
   const exclusiveFrames = AVATAR_FRAMES.filter(
     (theme) => isExclusiveFrame(theme.key) && canUseExclusiveFrame(theme.key, username),
@@ -333,57 +342,78 @@ export function ProfileEditor({
               />
             </div>
             <div className="space-y-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <label className="text-xs font-medium text-muted" htmlFor="profile-status">
-                  Статус
-                </label>
-                <span
-                  className={`text-[11px] tabular-nums ${
-                    countStatusChars(label) >= STATUS_MAX_LENGTH ? 'text-amber-300' : 'text-muted'
-                  }`}
+              <span className="text-xs font-medium text-muted">Статус</span>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setLabel('')}
+                  aria-pressed={!label}
+                  className={cn(
+                    'rounded-full border px-3 py-1.5 text-[12px] font-medium transition',
+                    !label
+                      ? 'border-white/40 bg-white/10 text-ink'
+                      : 'border-white/10 bg-black/30 text-muted hover:border-white/25 hover:text-ink',
+                  )}
                 >
-                  {countStatusChars(label)}/{STATUS_MAX_LENGTH}
-                </span>
+                  Без статуса
+                </button>
+                {statusOptions.map((preset) => {
+                  const active = label === preset.key
+                  return (
+                    <button
+                      key={preset.key}
+                      type="button"
+                      onClick={() => setLabel(active ? '' : preset.key)}
+                      aria-pressed={active}
+                      className={cn(
+                        'rounded-full border p-0.5 transition',
+                        active
+                          ? 'border-white/45 bg-white/10'
+                          : 'border-transparent hover:bg-white/5',
+                      )}
+                    >
+                      <StatusPill
+                        text={preset.key}
+                        color={preset.key === 'boss' ? undefined : tint}
+                        className="py-0.5 text-[12px]"
+                      />
+                    </button>
+                  )
+                })}
               </div>
-              <input
-                id="profile-status"
-                value={label}
-                onChange={(event) => setLabel(limitStatusChars(event.target.value))}
-                placeholder="например, в поиске нового"
-                aria-describedby="profile-status-hint"
-                className="input"
-              />
-              <p id="profile-status-hint" className="text-[11px] text-muted">
-                Короткая подпись рядом с ником в профиле. Оставьте пустым, чтобы скрыть.
+              <p className="text-[11px] text-muted">
+                Готовая подпись рядом с ником. Нажмите выбранную ещё раз, чтобы снять.
               </p>
-              <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                <span className="text-[11px] text-muted">Цвет:</span>
-                {STATUS_COLORS.map((color) => (
-                  <button
-                    key={color.key}
-                    type="button"
-                    onClick={() => setTint(color.key)}
-                    title={color.label}
-                    aria-label={color.label}
-                    aria-pressed={tint === color.key}
-                    className={cn(
-                      'h-7 w-7 rounded-full border border-white/20 transition',
-                      statusColorTheme(color.key).dot,
-                      tint === color.key
-                        ? 'ring-2 ring-white/80 ring-offset-2 ring-offset-black'
-                        : 'opacity-80 hover:opacity-100',
-                    )}
-                  />
-                ))}
-              </div>
+              {label === 'boss' ? (
+                <p className="pt-1 text-[11px] text-muted">
+                  У «ПРОСТО БОСС» свой стальной стиль — цвет не выбирается.
+                </p>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                  <span className="text-[11px] text-muted">Цвет:</span>
+                  {STATUS_COLORS.map((color) => (
+                    <button
+                      key={color.key}
+                      type="button"
+                      onClick={() => setTint(color.key)}
+                      title={color.label}
+                      aria-label={color.label}
+                      aria-pressed={tint === color.key}
+                      className={cn(
+                        'h-7 w-7 rounded-full border border-white/20 transition',
+                        statusColorTheme(color.key).dot,
+                        tint === color.key
+                          ? 'ring-2 ring-white/80 ring-offset-2 ring-offset-black'
+                          : 'opacity-80 hover:opacity-100',
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
               <div className="flex items-center gap-2 pt-1">
                 <span className="text-[11px] text-muted">Так появится в профиле:</span>
-                {label.trim() ? (
-                  <StatusPill
-                    text={label.trim()}
-                    color={tint}
-                    className="py-0.5 text-[12px]"
-                  />
+                {label ? (
+                  <StatusPill text={label} color={tint} className="py-0.5 text-[12px]" />
                 ) : (
                   <span className="text-[11px] text-muted">— скрыто</span>
                 )}

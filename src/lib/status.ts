@@ -1,5 +1,61 @@
-/** Short label shown next to the display name on the profile page. */
-export const STATUS_MAX_LENGTH = 15
+/**
+ * A short status is shown next to the display name on the profile page.
+ * Only the ready-made list below can be picked; the database stores the key.
+ */
+export const STATUS_PRESETS = [
+  { key: 'max', label: 'На максималках' },
+  { key: 'rhythm', label: 'В своём ритме' },
+  { key: 'pause', label: 'Без паузы' },
+  { key: 'repeat', label: 'На репите' },
+  { key: 'genre', label: 'Вне жанра' },
+  { key: 'sound', label: 'Свой звук' },
+  { key: 'night', label: 'Ночной режим' },
+  { key: 'wave', label: 'На другой волне' },
+  { key: 'quiet', label: 'Тише, я слушаю' },
+  { key: 'hit', label: 'В ударе' },
+  { key: 'nonformat', label: 'Неформат' },
+  { key: 'flight', label: 'Свободный полёт' },
+  // One-off status drawn with an animated gradient and bolts. Owners below.
+  { key: 'boss', label: 'ПРОСТО БОСС', exclusive: true },
+] as const
+
+export type StatusPreset = (typeof STATUS_PRESETS)[number]
+export type StatusKey = StatusPreset['key']
+
+/**
+ * Statuses that belong to one person only. The server checks this list as well,
+ * so hiding the card in the editor is not the only line of defence.
+ */
+export const EXCLUSIVE_STATUS_OWNERS: Partial<Record<StatusKey, readonly string[]>> = {
+  boss: ['stas'],
+}
+
+/** Finds a status by its stored key. */
+export function statusByKey(value: string | null | undefined): StatusPreset | undefined {
+  return STATUS_PRESETS.find((status) => status.key === value)
+}
+
+/**
+ * Resolves both the new keys and labels written before the catalogue existed,
+ * so an old profile keeps showing its status until the owner picks a new one.
+ */
+export function resolveStatus(value: string | null | undefined): StatusPreset | undefined {
+  if (!value) return undefined
+  return (
+    statusByKey(value) ?? STATUS_PRESETS.find((status) => status.label === value.trim())
+  )
+}
+
+/** True only for the listed owner of an exclusive status, e.g. @stas and «ПРОСТО БОСС». */
+export function canUseExclusiveStatus(
+  value: string | null | undefined,
+  username: string | null | undefined,
+): boolean {
+  const status = statusByKey(value)
+  if (!status || !('exclusive' in status) || !username) return false
+  const owners = EXCLUSIVE_STATUS_OWNERS[status.key]
+  return Boolean(owners?.includes(username.trim().toLowerCase()))
+}
 
 /**
  * Fixed palette for the status bubble. Classes are written out in full so
@@ -77,24 +133,4 @@ export function clampStatusColor(value: unknown): StatusColor {
   return STATUS_COLORS.some((color) => color.key === value)
     ? (value as StatusColor)
     : DEFAULT_STATUS_COLOR
-}
-
-/** Counts user-perceived characters so one emoji takes one slot. */
-export function countStatusChars(value: string): number {
-  return Array.from(value).length
-}
-
-/** Keeps typing intact (spaces included) while never letting the text grow past the limit. */
-export function limitStatusChars(value: string, limit = STATUS_MAX_LENGTH): string {
-  const chars = Array.from(value)
-  return chars.length <= limit ? value : chars.slice(0, limit).join('')
-}
-
-/** Collapses whitespace, drops control characters and cuts to the limit. */
-export function clampStatus(value: string, limit = STATUS_MAX_LENGTH): string {
-  const cleaned = value
-    .replace(/[\u0000-\u001f\u007f]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-  return Array.from(cleaned).slice(0, limit).join('').trim()
 }

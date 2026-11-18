@@ -241,6 +241,15 @@ function createDb() {
     }
     db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('legacy_points_v1', '1')").run()
   }
+  // The owner of the exclusive status gets it right away, without opening the
+  // editor. The marker keeps a later personal choice from being overwritten.
+  const bossStatusGranted = db
+    .prepare("SELECT value FROM meta WHERE key = 'boss_status_v1'")
+    .get()
+  if (!bossStatusGranted) {
+    db.prepare("UPDATE users SET status = 'boss', status_color = 'glass' WHERE username = 'stas'").run()
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('boss_status_v1', '1')").run()
+  }
   // Codes are short-lived; drop leftovers so the tables stay small.
   db.exec('DELETE FROM email_verifications WHERE expires_at < ' + Date.now())
   db.exec('DELETE FROM password_resets WHERE expires_at < ' + Date.now())

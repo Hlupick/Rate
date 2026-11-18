@@ -17,7 +17,7 @@ import {
 import { clientIp, rateLimit } from '@/lib/rate-limit'
 import { clampAvatarFrame } from '@/lib/avatar-frame'
 import { hasFrameAccess } from '@/lib/frames'
-import { clampStatus, clampStatusColor } from '@/lib/status'
+import { canUseExclusiveStatus, clampStatusColor, statusByKey } from '@/lib/status'
 
 export const runtime = 'nodejs'
 
@@ -54,6 +54,16 @@ export async function PATCH(request: Request) {
     }
   }
 
+  if (body.status !== undefined && body.status !== null) {
+    const status = statusByKey(String(body.status))
+    if (!status) {
+      return NextResponse.json({ error: 'Такого статуса нет' }, { status: 400 })
+    }
+    if ('exclusive' in status && !canUseExclusiveStatus(status.key, user.username)) {
+      return NextResponse.json({ error: 'Этот статус доступен только его владельцу' }, { status: 403 })
+    }
+  }
+
   const patch = {
     displayName:
       body.displayName === undefined ? undefined : String(body.displayName).trim().slice(0, 40),
@@ -68,7 +78,7 @@ export async function PATCH(request: Request) {
         ? undefined
         : body.status === null
           ? null
-          : clampStatus(String(body.status)) || null,
+          : (statusByKey(String(body.status))?.key ?? null),
     statusColor:
       body.statusColor === undefined || body.statusColor === null
         ? undefined
