@@ -9,6 +9,7 @@ import { createTrack, userUploadStats } from '@/lib/queries'
 import { QUOTAS, diskFreeBytes, formatBytes } from '@/lib/storage'
 import { rateLimit } from '@/lib/rate-limit'
 import { addUploadPoints } from '@/lib/points'
+import { notifyPendingTrack } from '@/lib/moderation-mail'
 import { splitFileName, tagValue } from '@/lib/track-names'
 
 export const runtime = 'nodejs'
@@ -152,6 +153,7 @@ export async function POST(request: Request) {
   })
 
   addUploadPoints(user.id, track.id)
+  await notifyPendingTrack(track, user)
 
   return NextResponse.json({ track })
 }
