@@ -37,12 +37,7 @@ export function isAllowedCoverUrl(value: string): boolean {
     const url = new URL(value)
     if (url.protocol !== 'https:') return false
     const host = url.hostname.toLowerCase()
-    return (
-      host.endsWith('.scdn.co') ||
-      host.endsWith('.spotifycdn.com') ||
-      host.endsWith('.dzcdn.net') ||
-      host === 'i.scdn.co'
-    )
+    return host.endsWith('.dzcdn.net')
   } catch {
     return false
   }

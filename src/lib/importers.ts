@@ -138,12 +138,6 @@ export async function resolvePlaylistUrl(input: string): Promise<ImportedPlaylis
     throw new ImportError('invalid', 'Вставьте ссылку на плейлист Deezer.')
   }
   if (/deezer\.com/i.test(url)) return importDeezer(url)
-  if (/sk-?lane\.com/i.test(url)) {
-    throw new ImportError(
-      'lane-file',
-      'LANE не открывает плейлисты по ссылке извне. Экспортируйте плейлист в M3U, JSON или CSV и загрузите файл во вкладке «CSV / M3U / JSON».',
-    )
-  }
   throw new ImportError('unsupported', 'Сейчас поддерживается импорт по ссылке только из Deezer.')
 }
 

@@ -84,7 +84,7 @@ export default async function PlaylistPage({ params }: { params: Promise<{ id: s
                     rel="noreferrer noopener"
                     className="text-ink underline underline-offset-2"
                   >
-                    {playlist.source === 'spotify' ? 'Spotify' : 'Deezer'}
+                    Deezer
                   </a>
                 </span>
               )}

@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Нужен вход' }, { status: 401 })
 
-  const limiter = rateLimit(`upload:${user.id}`, 20, 60 * 60_000)
+  const limiter = rateLimit(`upload:${user.id}`, QUOTAS.tracksPerUser + 20, 60 * 60_000)
   if (!limiter.ok) {
     return NextResponse.json(
       { error: `Слишком много загрузок. Повторите через ${Math.ceil(limiter.retryAfter / 60)} мин.` },

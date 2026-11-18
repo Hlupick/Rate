@@ -2,11 +2,14 @@
 
 import { useCallback, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { unzip, type UnzipFileInfo } from 'fflate'
 import { Check, FileAudio, Loader2, Music4, Trash2, UploadCloud, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const ACCEPTED = ['.mp3', '.m4a', '.aac', '.ogg', '.opus', '.flac', '.wav']
 const MAX_SIZE = 50 * 1024 * 1024
+const MAX_BATCH = 250 * 1024 * 1024
+const MAX_FILES = 100
 
 type Item = {
   key: string
@@ -24,44 +27,139 @@ function baseName(name: string) {
   return name.replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').trim()
 }
 
+function cleanName(value: string) {
+  const base = value.split(/[\\/]/).pop() ?? ''
+  return base.replace(/^\d+[\s.\-–—_]+/, '').trim()
+}
+
+function itemKey(name: string, size: number) {
+  return `${name}-${size}-${Math.random().toString(36).slice(2, 7)}`
+}
+
 export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [items, setItems] = useState<Item[]>([])
   const [dragging, setDragging] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [unpacking, setUnpacking] = useState(false)
   const [note, setNote] = useState<string | null>(null)
 
   const addFiles = useCallback(
-    (files: FileList | File[]) => {
-      const list = Array.from(files)
-      const accepted: Item[] = []
-      const rejected: string[] = []
-      for (const file of list) {
-        const ext = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`
-        if (!ACCEPTED.includes(ext)) {
-          rejected.push(`${file.name} — формат не поддерживается`)
-          continue
+    async (files: FileList | File[]) => {
+      setUnpacking(true)
+      try {
+        const list = Array.from(files)
+        const candidates: Item[] = []
+        const rejected: string[] = []
+
+        for (const file of list) {
+          const ext = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`
+
+          if (ext === '.zip') {
+            if (file.size > MAX_BATCH) {
+              rejected.push(`${file.name} — архив больше 250 МБ`)
+              continue
+            }
+            try {
+              const bytes = new Uint8Array(await file.arrayBuffer())
+              let planned = 0
+              const skipped: string[] = []
+              const extracted = await new Promise<Record<string, Uint8Array>>((resolve, reject) => {
+                unzip(
+                  bytes,
+                  {
+                    filter: (info: UnzipFileInfo) => {
+                      const name = cleanName(info.name)
+                      const fileExt = `.${name.split('.').pop()?.toLowerCase() ?? ''}`
+                      if (!name || name.startsWith('.') || !ACCEPTED.includes(fileExt)) return false
+                      if (info.originalSize === 0) {
+                        skipped.push(`${name} — пустой файл`)
+                        return false
+                      }
+                      if (info.originalSize > MAX_SIZE) {
+                        skipped.push(`${name} — больше 50 МБ`)
+                        return false
+                      }
+                      if (planned + info.originalSize > MAX_BATCH) {
+                        skipped.push(`${name} — суммарно больше 250 МБ`)
+                        return false
+                      }
+                      planned += info.originalSize
+                      return true
+                    },
+                  },
+                  (error, entries) => (error ? reject(error) : resolve(entries)),
+                )
+              })
+              const names = Object.keys(extracted).sort((a, b) => a.localeCompare(b, 'ru'))
+              if (names.length === 0) {
+                rejected.push(`${file.name} — в архиве нет подходящих аудиофайлов`)
+              } else {
+                for (const name of names) {
+                  const fileName = cleanName(name)
+                  const data = new Uint8Array(extracted[name])
+                  candidates.push({
+                    key: itemKey(fileName, data.length),
+                    file: new File([data as BlobPart], fileName, { type: 'application/octet-stream' }),
+                    title: baseName(fileName),
+                    artist: defaultArtist ?? '',
+                    album: '',
+                    status: 'idle',
+                    progress: 0,
+                  })
+                }
+              }
+              if (skipped.length > 0) rejected.push(...skipped)
+            } catch {
+              rejected.push(`${file.name} — не удалось распаковать архив`)
+            }
+            continue
+          }
+
+          if (!ACCEPTED.includes(ext)) {
+            rejected.push(`${file.name} — формат не поддерживается`)
+            continue
+          }
+          if (file.size > MAX_SIZE) {
+            rejected.push(`${file.name} — больше 50 МБ`)
+            continue
+          }
+          candidates.push({
+            key: itemKey(file.name, file.size),
+            file,
+            title: baseName(file.name),
+            artist: defaultArtist ?? '',
+            album: '',
+            status: 'idle',
+            progress: 0,
+          })
         }
-        if (file.size > MAX_SIZE) {
-          rejected.push(`${file.name} — больше 50 МБ`)
-          continue
+
+        let count = items.length
+        let bytes = items.reduce((sum, item) => sum + item.file.size, 0)
+        const accepted: Item[] = []
+        for (const item of candidates) {
+          if (count >= MAX_FILES) {
+            rejected.push(`${item.file.name} — лимит ${MAX_FILES} файлов`)
+            continue
+          }
+          if (bytes + item.file.size > MAX_BATCH) {
+            rejected.push(`${item.file.name} — суммарно больше 250 МБ`)
+            continue
+          }
+          bytes += item.file.size
+          count += 1
+          accepted.push(item)
         }
-        accepted.push({
-          key: `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 7)}`,
-          file,
-          title: baseName(file.name),
-          artist: defaultArtist ?? '',
-          album: '',
-          status: 'idle',
-          progress: 0,
-        })
+
+        setNote(rejected.length > 0 ? rejected.join(' · ') : null)
+        if (accepted.length > 0) setItems((prev) => [...prev, ...accepted])
+      } finally {
+        setUnpacking(false)
       }
-      if (rejected.length > 0) setNote(rejected.join(' · '))
-      else setNote(null)
-      setItems((prev) => [...prev, ...accepted])
     },
-    [defaultArtist],
+    [defaultArtist, items],
   )
 
   function update(key: string, patch: Partial<Item>) {
@@ -138,7 +236,7 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
         onDrop={(event) => {
           event.preventDefault()
           setDragging(false)
-          if (event.dataTransfer.files.length) addFiles(event.dataTransfer.files)
+          if (event.dataTransfer.files.length) void addFiles(event.dataTransfer.files)
         }}
         onClick={() => inputRef.current?.click()}
         className={cn(
@@ -151,19 +249,24 @@ export function UploadForm({ defaultArtist }: { defaultArtist?: string }) {
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-card">
           <UploadCloud size={24} className="text-ink" />
         </div>
-        <p className="text-[15px] font-semibold">Перетащите файлы сюда</p>
-        <p className="mt-1 text-sm text-muted">или нажмите, чтобы выбрать на диске</p>
+        <p className="text-[15px] font-semibold">
+          {unpacking ? 'Распаковываем архив…' : 'Перетащите файлы сюда'}
+        </p>
+        <p className="mt-1 text-sm text-muted">
+          {unpacking ? 'Это займёт несколько секунд' : 'или нажмите, чтобы выбрать на диске'}
+        </p>
         <p className="mt-3 text-xs text-dim">
-          MP3, M4A, AAC, OGG, OPUS, FLAC, WAV · до 50 МБ на трек
+          MP3, M4A, AAC, OGG, OPUS, FLAC, WAV или ZIP с треками · до 50 МБ на трек, 250 МБ за раз
         </p>
         <input
           ref={inputRef}
           type="file"
-          accept={ACCEPTED.join(',')}
+          accept={[...ACCEPTED, '.zip'].join(',')}
           multiple
           className="hidden"
+          disabled={unpacking}
           onChange={(event) => {
-            if (event.target.files?.length) addFiles(event.target.files)
+            if (event.target.files?.length) void addFiles(event.target.files)
             event.target.value = ''
           }}
         />

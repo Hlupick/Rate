@@ -38,33 +38,20 @@ export default async function ImportPage() {
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
           Вставьте ссылку на публичный плейлист <strong className="text-ink">Deezer</strong> — monah
-          перенесёт названия и исполнителей и создаст плейлист. Для <strong>Lane</strong>, Spotify
-          и других плееров используйте файл плейлиста (M3U/M3U8, JSON, CSV) или список строк.
-          Совпавшие с библиотекой треки станут играбельными, остальные сохранятся как «не
-          загружено». Аудио из сервисов не скачивается.
+          перенесёт названия и исполнителей и создаст плейлист. Также можно загрузить файл плейлиста
+          (M3U/M3U8, JSON, CSV) или список строк. Совпавшие с библиотекой треки станут играбельными,
+          остальные сохранятся как «не загружено». Аудио из сервисов не скачивается.
         </p>
       </div>
 
       <div className="mt-5 rounded-lg border border-line bg-card p-4 text-sm leading-relaxed text-muted">
-        <div className="mb-2 font-semibold text-ink">Если ссылка не подходит</div>
+        <div className="mb-2 font-semibold text-ink">Другие способы</div>
         <ol className="list-decimal space-y-1.5 pl-5">
           <li>
-            <strong className="text-ink">Lane</strong> — мобильный плеер без публичного веб-API.
-            Экспортируйте плейлист в M3U/M3U8 или JSON и загрузите файл во вкладке «CSV / M3U /
-            JSON».
+            Экспортируйте плейлист из своего плеера в M3U/M3U8, JSON или CSV и загрузите файл во
+            вкладке «CSV / M3U / JSON».
           </li>
-          <li>
-            Spotify и другие сервисы — выгрузите CSV через{' '}
-            <a
-              href="https://exportify.net"
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-ink underline underline-offset-2"
-            >
-              exportify.net
-            </a>{' '}
-            или используйте список строк.
-          </li>
+          <li>Или вставьте список строк вида «Название — Исполнитель» во вкладке «Список строк».</li>
           <li>Форматы файлов: CSV, M3U, M3U8, JSON, TXT.</li>
         </ol>
       </div>

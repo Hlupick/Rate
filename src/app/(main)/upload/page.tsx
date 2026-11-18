@@ -85,12 +85,13 @@ export default async function UploadPage() {
         <div className="mt-10 grid gap-3 border-t border-white/5 pt-6 text-xs text-muted sm:grid-cols-3">
           <div>
             <div className="mb-1 font-semibold text-ink">Форматы</div>
-            MP3, M4A, AAC, OGG, OPUS, FLAC, WAV. MP3 и M4A играют во всех браузерах.
+            MP3, M4A, AAC, OGG, OPUS, FLAC, WAV или ZIP-архив с треками. MP3 и M4A играют во всех
+            браузерах.
           </div>
           <div>
             <div className="mb-1 font-semibold text-ink">Лимиты</div>
-            50 МБ на трек, до 250 МБ за один заход. Файл проверяется по расширению, MIME и
-            содержимому.
+            50 МБ на трек, до 250 МБ за один заход. Архивы распаковываются в браузере, треки
+            проверяются по содержимому.
           </div>
           <div>
             <div className="mb-1 font-semibold text-ink">Что дальше</div>
