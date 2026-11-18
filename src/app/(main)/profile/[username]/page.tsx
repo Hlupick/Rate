@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import { Headphones } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { getPlaylistsByOwner, getListeningSeconds, getUserByUsername, listTracks } from '@/lib/queries'
 import { CardGrid, SectionHeader } from '@/components/ui/Section'
@@ -65,8 +66,20 @@ export default async function ProfilePage({
             <p className="mt-2 text-sm text-muted">
               @{profile.username} · загрузок: {uploads.length} · прослушиваний:{' '}
               {formatCount(totalPlays)}
-              {listeningSeconds > 0 && <> · в музыке: {formatTotalDuration(listeningSeconds)}</>}
             </p>
+            {listeningSeconds > 0 && (
+              <div className="mt-3 flex justify-center md:justify-start">
+                <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/[0.08] px-3.5 py-1.5">
+                  <Headphones size={14} className="text-amber-300" aria-hidden />
+                  <span className="text-sm font-bold tabular-nums text-amber-100">
+                    {formatTotalDuration(listeningSeconds)}
+                  </span>
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-amber-200/60">
+                    в музыке
+                  </span>
+                </span>
+              </div>
+            )}
             {profile.bio && <p className="mt-2 max-w-xl text-sm text-muted">{profile.bio}</p>}
             {isSelf && (
               <div className="mt-3 flex flex-wrap justify-center gap-2 md:justify-start">

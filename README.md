@@ -84,15 +84,17 @@ Chrome без адресной строки, с общей сессией, фо�
   для проверки домена) и страница `/download`.
 - Готовый APK кладётся на сервер в `storage/app/monah.apk`, рядом `storage/app/build.json`
   с версией. Страница `/download` и `/api/app/android` читают их напрямую.
-- Обновления только вручную: поднять `versionCode` и `appVersion` в `twa-manifest.json`,
-  пересобрать, заменить файл на сервере.
+- Обновления только вручную: поднять версию, пересобрать, заменить файл на сервере.
 
 ```powershell
-# в C:\Users\Stasg\monah-twa
-$env:BUBBLEWRAP_KEYSTORE_PASSWORD = Get-Content .\keystore-password.txt -Raw
-$env:BUBBLEWRAP_KEY_PASSWORD = $env:BUBBLEWRAP_KEYSTORE_PASSWORD
-npx @bubblewrap/cli build
+# из корня репозитория: сборка + копия в storage/app (+ загрузка на прод)
+powershell -ExecutionPolicy Bypass -File scripts\build-apk.ps1 -Deploy
 ```
+
+Скрипт сам увеличивает `appVersionCode`, перегенерирует Gradle-проект (`scripts/twa-generate.mjs`),
+запускает `bubblewrap build`, кладёт APK в `storage/app` и пишет `build.json`. Нужны JDK 17
+(`C:\Users\Stasg\tools\jdk17`), Android SDK (`C:\Users\Stasg\tools\android-sdk`) и установленный
+`@bubblewrap/core` в каталоге обёртки.
 
 ## Запуск
 
