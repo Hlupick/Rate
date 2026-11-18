@@ -17,6 +17,9 @@
 	# Audio streaming needs unbuffered passing, otherwise Range requests feel slow.
 	reverse_proxy app:3000 {
 		flush_interval -1
+		# Hold requests briefly while the app container is being recreated.
+		lb_try_duration 15s
+		lb_try_interval 250ms
 		# Drop any client-supplied value so rate limiting cannot be spoofed.
 		header_up X-Forwarded-For {remote_host}
 	}
