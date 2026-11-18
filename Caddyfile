@@ -26,3 +26,13 @@
 		format console
 	}
 }
+
+# One canonical host: everything else redirects, so cookies and links stay consistent.
+www.{$DOMAIN:localhost} {
+	redir https://{$DOMAIN:localhost}{uri} 301
+}
+
+# Old address: keeps links and the previously installed app working.
+monah2.duckdns.org {
+	redir https://{$DOMAIN:localhost}{uri} 301
+}
