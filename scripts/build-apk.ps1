@@ -68,5 +68,5 @@ if ($Deploy) {
   ssh -i C:\Users\Stasg\.ssh\monah_deploy -o StrictHostKeyChecking=no root@2.56.118.173 "mkdir -p /root/monah/storage/app"
   scp -i C:\Users\Stasg\.ssh\monah_deploy -o StrictHostKeyChecking=no (Join-Path $appDir 'monah.apk') root@2.56.118.173:/root/monah/storage/app/monah.apk
   scp -i C:\Users\Stasg\.ssh\monah_deploy -o StrictHostKeyChecking=no (Join-Path $appDir 'build.json') root@2.56.118.173:/root/monah/storage/app/build.json
-  Write-Host 'Uploaded to https://monah2.duckdns.org/api/app/android'
+  Write-Host 'Uploaded to https://ratemusic.space/api/app/android'
 }
