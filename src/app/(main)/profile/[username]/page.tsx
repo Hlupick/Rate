@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { getOwnedFrames } from '@/lib/frames'
 import { getUserPoints } from '@/lib/points'
 import { getFollowRelation, getFollowStats } from '@/lib/social'
+import { getPresence } from '@/lib/presence'
 import { getPlaylistsByOwner, getListeningSeconds, getUserByUsername, listTracks } from '@/lib/queries'
 import { CardGrid, SectionHeader } from '@/components/ui/Section'
 import { PlaylistCard } from '@/components/ui/cards'
@@ -19,6 +20,7 @@ import { StatusPill } from '@/components/profile/StatusPill'
 import { PointsHint } from '@/components/profile/PointsHint'
 import { FollowButton } from '@/components/social/FollowButton'
 import { ProfileConnections } from '@/components/social/ProfileConnections'
+import { PresenceBadge } from '@/components/social/PresenceBadge'
 import { formatCount, formatTotalDuration } from '@/lib/format'
 
 export async function generateMetadata({
@@ -51,6 +53,7 @@ export default async function ProfilePage({
   const ownedFrames = isSelf ? getOwnedFrames(profile.id) : []
   const followStats = getFollowStats(profile.id)
   const relation = viewer ? getFollowRelation(viewer.id, profile.id) : 'none'
+  const presence = getPresence(profile.id)
 
   return (
     <div>
@@ -116,6 +119,15 @@ export default async function ProfilePage({
             )}
             {profile.bio && <p className="mt-2 max-w-xl text-sm text-muted">{profile.bio}</p>}
             <ProfileConnections username={profile.username} stats={followStats} />
+            {!isSelf && (
+              <div className="mt-1.5 flex justify-center md:justify-start">
+                <PresenceBadge
+                  username={profile.username}
+                  initialLastSeenAt={presence.lastSeenAt}
+                  initialOnline={presence.online}
+                />
+              </div>
+            )}
             {!isSelf && (
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2 md:justify-start">
                 <FollowButton

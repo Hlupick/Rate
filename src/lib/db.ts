@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS users (
   cover TEXT,
   avatar_frame TEXT,
   points INTEGER NOT NULL DEFAULT 0,
+  last_seen_at INTEGER,
   can_upload INTEGER NOT NULL DEFAULT 0,
   is_admin INTEGER NOT NULL DEFAULT 0,
   is_banned INTEGER NOT NULL DEFAULT 0,
@@ -155,6 +156,8 @@ CREATE TABLE IF NOT EXISTS chat_members (
   chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   last_read_id INTEGER NOT NULL DEFAULT 0,
+  typing_at INTEGER NOT NULL DEFAULT 0,
+  muted INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (chat_id, user_id)
 );
 
@@ -256,6 +259,9 @@ function createDb() {
     'ALTER TABLE users ADD COLUMN avatar_frame TEXT',
     'ALTER TABLE users ADD COLUMN points INTEGER NOT NULL DEFAULT 0',
     'ALTER TABLE users ADD COLUMN search_text TEXT NOT NULL DEFAULT \'\'',
+    'ALTER TABLE users ADD COLUMN last_seen_at INTEGER',
+    'ALTER TABLE chat_members ADD COLUMN typing_at INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE chat_members ADD COLUMN muted INTEGER NOT NULL DEFAULT 0',
     // Playlist import was removed; drop the placeholder table it left behind.
     'DROP TABLE IF EXISTS playlist_drafts',
   ]

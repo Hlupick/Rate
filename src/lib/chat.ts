@@ -2,9 +2,12 @@ import { randomUUID } from 'node:crypto'
 import { clampAvatarFrame, type AvatarFrame } from './avatar-frame'
 import { CHAT_MESSAGE_MAX, CHAT_PAGE_SIZE } from './chat-config'
 import { db } from './db'
+import { PRESENCE_ONLINE_MS } from './presence'
 import { areFriends } from './social'
 
 type Row = Record<string, any>
+
+const TYPING_TTL_MS = 5_000
 
 export type ChatMessage = {
   id: number
@@ -23,6 +26,10 @@ export type ChatSummary = {
   lastMessageAt: number
   lastMessageMine: boolean
   unread: number
+  online: boolean
+  lastSeenAt: number
+  muted: boolean
+  typing: boolean
 }
 
 export type ChatOther = {
@@ -31,29 +38,50 @@ export type ChatOther = {
   displayName: string
   avatar: string | null
   avatarFrame: AvatarFrame
+  online: boolean
+  lastSeenAt: number
 }
 
 export type ChatThread = {
   other: ChatOther
   messages: ChatMessage[]
   hasMore: boolean
+  otherTyping: boolean
+  muted: boolean
+}
+
+export type ChatNotification = {
+  id: number
+  username: string
+  displayName: string
+  avatar: string | null
+  avatarFrame: AvatarFrame
+  body: string
+  createdAt: number
 }
 
 function userByUsername(username: string): Row | undefined {
   return db
     .prepare(
-      'SELECT id, username, display_name, avatar, avatar_frame, is_banned FROM users WHERE LOWER(username) = ?',
+      'SELECT id, username, display_name, avatar, avatar_frame, last_seen_at, is_banned FROM users WHERE LOWER(username) = ?',
     )
     .get(username.trim().toLowerCase()) as Row | undefined
 }
 
+function isOnline(lastSeenAt: number): boolean {
+  return lastSeenAt > 0 && Date.now() - lastSeenAt < PRESENCE_ONLINE_MS
+}
+
 function mapOther(row: Row): ChatOther {
+  const lastSeenAt = Number(row.last_seen_at ?? 0)
   return {
     id: String(row.id),
     username: String(row.username),
     displayName: String(row.display_name),
     avatar: row.avatar ? String(row.avatar) : null,
     avatarFrame: clampAvatarFrame(row.avatar_frame ? String(row.avatar_frame) : null),
+    lastSeenAt,
+    online: isOnline(lastSeenAt),
   }
 }
 
@@ -82,13 +110,15 @@ export function listChats(userId: string): ChatSummary[] {
   const rows = db
     .prepare(
       `SELECT c.id, c.last_message_at,
-              cm.last_read_id,
-              u.username, u.display_name, u.avatar, u.avatar_frame,
+              cm.last_read_id, cm.muted,
+              u.username, u.display_name, u.avatar, u.avatar_frame, u.last_seen_at,
+              om.typing_at AS other_typing,
               m.body AS last_body, m.sender_id AS last_sender,
               (SELECT COUNT(*) FROM chat_messages x
                WHERE x.chat_id = c.id AND x.sender_id <> ? AND x.id > cm.last_read_id) AS unread
        FROM chats c
        JOIN chat_members cm ON cm.chat_id = c.id AND cm.user_id = ?
+       LEFT JOIN chat_members om ON om.chat_id = c.id AND om.user_id <> cm.user_id
        JOIN users u ON u.id = CASE WHEN c.user_a = ? THEN c.user_b ELSE c.user_a END
        LEFT JOIN chat_messages m ON m.id =
          (SELECT id FROM chat_messages WHERE chat_id = c.id ORDER BY id DESC LIMIT 1)
@@ -102,17 +132,25 @@ export function listChats(userId: string): ChatSummary[] {
     )
     .all(userId, userId, userId, userId, userId, userId) as Row[]
 
-  return rows.map((row) => ({
-    chatId: String(row.id),
-    username: String(row.username),
-    displayName: String(row.display_name),
-    avatar: row.avatar ? String(row.avatar) : null,
-    avatarFrame: clampAvatarFrame(row.avatar_frame ? String(row.avatar_frame) : null),
-    lastMessage: row.last_body ? String(row.last_body) : null,
-    lastMessageAt: Number(row.last_message_at ?? 0),
-    lastMessageMine: String(row.last_sender ?? '') === userId,
-    unread: Number(row.unread ?? 0),
-  }))
+  const now = Date.now()
+  return rows.map((row) => {
+    const lastSeenAt = Number(row.last_seen_at ?? 0)
+    return {
+      chatId: String(row.id),
+      username: String(row.username),
+      displayName: String(row.display_name),
+      avatar: row.avatar ? String(row.avatar) : null,
+      avatarFrame: clampAvatarFrame(row.avatar_frame ? String(row.avatar_frame) : null),
+      lastMessage: row.last_body ? String(row.last_body) : null,
+      lastMessageAt: Number(row.last_message_at ?? 0),
+      lastMessageMine: String(row.last_sender ?? '') === userId,
+      unread: Number(row.unread ?? 0),
+      online: isOnline(lastSeenAt),
+      lastSeenAt,
+      muted: Number(row.muted ?? 0) === 1,
+      typing: Number(row.other_typing ?? 0) > now - TYPING_TTL_MS,
+    }
+  })
 }
 
 export function getTotalUnread(userId: string): number {
@@ -145,8 +183,28 @@ export function getChatThread(
 
   const chatId = findChatId(userId, otherId)
   if (!chatId) {
-    return { ok: true, thread: { other: mapOther(other), messages: [], hasMore: false } }
+    return {
+      ok: true,
+      thread: {
+        other: mapOther(other),
+        messages: [],
+        hasMore: false,
+        otherTyping: false,
+        muted: false,
+      },
+    }
   }
+
+  const mine = db
+    .prepare('SELECT muted FROM chat_members WHERE chat_id = ? AND user_id = ?')
+    .get(chatId, userId) as Row | undefined
+  const otherMember = db
+    .prepare(
+      'SELECT typing_at FROM chat_members WHERE chat_id = ? AND user_id <> ? LIMIT 1',
+    )
+    .get(chatId, userId) as Row | undefined
+  const muted = Number(mine?.muted ?? 0) === 1
+  const otherTyping = Number(otherMember?.typing_at ?? 0) > Date.now() - TYPING_TTL_MS
 
   let rows: Row[]
   let hasMore = false
@@ -180,6 +238,8 @@ export function getChatThread(
     thread: {
       other: mapOther(other),
       hasMore,
+      otherTyping,
+      muted,
       messages: rows.map((row) => ({
         id: Number(row.id),
         body: String(row.body),
@@ -241,6 +301,10 @@ export function sendChatMessage(
       )
       .run(id, userId, body, now)
     const messageId = Number(inserted.lastInsertRowid)
+    db.prepare('UPDATE chat_members SET typing_at = 0 WHERE chat_id = ? AND user_id = ?').run(
+      id,
+      userId,
+    )
 
     db.exec('COMMIT')
     return {
@@ -269,4 +333,101 @@ export function markChatRead(userId: string, otherUsername: string): number {
   ).run(Number(latest?.id ?? 0), chatId, userId)
 
   return getTotalUnread(userId)
+}
+
+export type ChatMutationResult =
+  | { ok: true; muted: boolean }
+  | { ok: false; status: 404; error: string }
+
+/** Per-conversation notification switch. Messages and unread stay untouched. */
+export function setChatMuted(
+  userId: string,
+  otherUsername: string,
+  muted: boolean,
+): ChatMutationResult {
+  const other = userByUsername(otherUsername)
+  if (!other) return { ok: false, status: 404, error: 'Пользователь не найден' }
+  const chatId = findChatId(userId, String(other.id))
+  if (!chatId) return { ok: false, status: 404, error: 'Переписки пока нет' }
+
+  db.prepare('UPDATE chat_members SET muted = ? WHERE chat_id = ? AND user_id = ?').run(
+    muted ? 1 : 0,
+    chatId,
+    userId,
+  )
+  return { ok: true, muted }
+}
+
+/** Stores a short-lived typing marker; no chat is created just for typing. */
+export function touchChatTyping(userId: string, otherUsername: string): boolean {
+  const other = userByUsername(otherUsername)
+  if (!other) return false
+  const otherId = String(other.id)
+  if (!areFriends(userId, otherId)) return false
+  const chatId = findChatId(userId, otherId)
+  if (!chatId) return false
+
+  db.prepare('UPDATE chat_members SET typing_at = ? WHERE chat_id = ? AND user_id = ?').run(
+    Date.now(),
+    chatId,
+    userId,
+  )
+  return true
+}
+
+/**
+ * Messages that deserve a toast: unread, addressed to the viewer, in chats
+ * that are not muted. The first call with afterId = 0 is only a baseline.
+ */
+export function listNotifications(
+  userId: string,
+  afterId: number,
+): { items: ChatNotification[]; latest: number } {
+  const latestRow = db
+    .prepare(
+      `SELECT COALESCE(MAX(m.id), 0) AS id
+       FROM chat_messages m
+       JOIN chat_members cm ON cm.chat_id = m.chat_id
+       WHERE cm.user_id = ?`,
+    )
+    .get(userId) as Row | undefined
+  const latest = Number(latestRow?.id ?? 0)
+
+  if (afterId <= 0) return { items: [], latest }
+
+  const rows = db
+    .prepare(
+      `SELECT m.id, m.body, m.created_at,
+              u.username, u.display_name, u.avatar, u.avatar_frame
+       FROM chat_messages m
+       JOIN chats c ON c.id = m.chat_id
+       JOIN chat_members cm ON cm.chat_id = c.id AND cm.user_id = ?
+       JOIN users u ON u.id = m.sender_id
+       WHERE (c.user_a = ? OR c.user_b = ?)
+         AND m.sender_id <> ?
+         AND m.id > ?
+         AND m.id > cm.last_read_id
+         AND cm.muted = 0
+         AND EXISTS (
+           SELECT 1 FROM follows f1
+           JOIN follows f2 ON f2.follower_id = f1.following_id AND f2.following_id = f1.follower_id
+           WHERE f1.follower_id = ? AND f1.following_id = u.id
+         )
+       ORDER BY m.id DESC
+       LIMIT 5`,
+    )
+    .all(userId, userId, userId, userId, Math.floor(afterId), userId) as Row[]
+
+  return {
+    latest,
+    items: rows.reverse().map((row) => ({
+      id: Number(row.id),
+      username: String(row.username),
+      displayName: String(row.display_name),
+      avatar: row.avatar ? String(row.avatar) : null,
+      avatarFrame: clampAvatarFrame(row.avatar_frame ? String(row.avatar_frame) : null),
+      body: String(row.body),
+      createdAt: Number(row.created_at),
+    })),
+  }
 }

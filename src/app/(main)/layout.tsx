@@ -5,6 +5,8 @@ import { TopBar } from '@/components/layout/TopBar'
 import { PlayerBar } from '@/components/player/PlayerBar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { StreakCelebration } from '@/components/streak/StreakCelebration'
+import { PresenceHeartbeat } from '@/components/social/PresenceHeartbeat'
+import { ChatNotifications } from '@/components/chat/ChatNotifications'
 import Link from 'next/link'
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
@@ -50,6 +52,8 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       <PlayerBar />
       <BottomNav />
       <StreakCelebration />
+      {user && <PresenceHeartbeat />}
+      {user && <ChatNotifications />}
     </div>
   )
 }

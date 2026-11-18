@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Loader2, MessageCircle, Send } from 'lucide-react'
+import { ArrowLeft, Bell, BellOff, Loader2, MessageCircle, Send } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { timeAgo } from '@/lib/format'
 import { CHAT_MESSAGE_MAX } from '@/lib/chat-config'
 import type { ChatMessage, ChatOther, ChatSummary } from '@/lib/chat'
 import { cn } from '@/lib/utils'
+import { ChatSettings } from './ChatSettings'
 
 const clock = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' })
 
@@ -29,6 +30,8 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
   const [chatsLoading, setChatsLoading] = useState(true)
   const [unread, setUnread] = useState(0)
   const [other, setOther] = useState<ChatOther | null>(null)
+  const [otherTyping, setOtherTyping] = useState(false)
+  const [muted, setMuted] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [hasMore, setHasMore] = useState(false)
   const [threadLoading, setThreadLoading] = useState(false)
@@ -37,6 +40,7 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
   const [sending, setSending] = useState(false)
   const lastIdRef = useRef(0)
   const listRef = useRef<HTMLDivElement>(null)
+  const typingSentRef = useRef(0)
 
   useEffect(() => {
     lastIdRef.current = messages.length > 0 ? messages[messages.length - 1].id : 0
@@ -96,6 +100,8 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
       setThreadLoading(true)
       setThreadError('')
       setOther(null)
+      setOtherTyping(false)
+      setMuted(false)
       setMessages([])
       setHasMore(false)
       try {
@@ -104,6 +110,8 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
           other?: ChatOther
           messages?: ChatMessage[]
           hasMore?: boolean
+          otherTyping?: boolean
+          muted?: boolean
           unread?: number
           error?: string
         }
@@ -111,6 +119,8 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
           throw new Error(data.error ?? 'Не удалось открыть переписку')
         }
         setOther(data.other)
+        setOtherTyping(Boolean(data.otherTyping))
+        setMuted(Boolean(data.muted))
         setMessages(data.messages ?? [])
         setHasMore(Boolean(data.hasMore))
         setUnread(Number(data.unread ?? 0))
@@ -130,10 +140,13 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
   useEffect(() => {
     if (!selected) {
       setOther(null)
+      setOtherTyping(false)
+      setMuted(false)
       setMessages([])
       setThreadError('')
       return
     }
+    typingSentRef.current = 0
     void loadThread(selected)
   }, [selected, loadThread])
 
@@ -154,10 +167,14 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
         const data = (await response.json()) as {
           other?: ChatOther
           messages?: ChatMessage[]
+          otherTyping?: boolean
+          muted?: boolean
           unread?: number
         }
         if (cancelled) return
         if (data.other) setOther(data.other)
+        setOtherTyping(Boolean(data.otherTyping))
+        setMuted(Boolean(data.muted))
         if (data.messages && data.messages.length > 0) {
           setMessages((current) => mergeMessages(current, data.messages!))
           setUnread(Number(data.unread ?? 0))
@@ -187,6 +204,37 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
     router.replace(pathname, { scroll: false })
   }
 
+  async function toggleMute() {
+    if (!selected) return
+    const next = !muted
+    setMuted(next)
+    setChats((current) =>
+      current.map((chat) => (chat.username === selected ? { ...chat, muted: next } : chat)),
+    )
+    try {
+      const response = await fetch(`/api/chats/${encodeURIComponent(selected)}/mute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ muted: next }),
+      })
+      if (!response.ok) throw new Error('Не удалось изменить настройку')
+    } catch {
+      setMuted(!next)
+      setChats((current) =>
+        current.map((chat) => (chat.username === selected ? { ...chat, muted: !next } : chat)),
+      )
+    }
+  }
+
+  function handleInput(value: string) {
+    setInput(value)
+    if (!selected || !value.trim()) return
+    const now = Date.now()
+    if (now - typingSentRef.current < 2500) return
+    typingSentRef.current = now
+    fetch(`/api/chats/${encodeURIComponent(selected)}/typing`, { method: 'POST' }).catch(() => undefined)
+  }
+
   async function send() {
     const text = input.trim()
     if (!text || !selected || sending) return
@@ -208,6 +256,7 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
       }
       setInput('')
       setMessages((current) => mergeMessages(current, [data.message!]))
+      typingSentRef.current = 0
       void markRead(selected)
       void loadChats()
       window.dispatchEvent(new Event('monah:chats'))
@@ -245,11 +294,14 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
       >
         <div className="flex items-center justify-between px-4 py-3">
           <h1 className="text-lg font-bold">Сообщения</h1>
-          {totalUnread > 0 && (
-            <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-black">
-              {totalUnread}
-            </span>
-          )}
+          <div className="flex items-center gap-1.5">
+            {totalUnread > 0 && (
+              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-black">
+                {totalUnread}
+              </span>
+            )}
+            <ChatSettings />
+          </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
           {chatsLoading ? (
@@ -273,25 +325,42 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
                   selected === chat.username && 'bg-white/10',
                 )}
               >
-                <Avatar
-                  name={chat.displayName}
-                  src={chat.avatar}
-                  frame={chat.avatarFrame}
-                  className="h-11 w-11"
-                  textClassName="text-xs"
-                />
+                <span className="relative shrink-0">
+                  <Avatar
+                    name={chat.displayName}
+                    src={chat.avatar}
+                    frame={chat.avatarFrame}
+                    className="h-11 w-11"
+                    textClassName="text-xs"
+                  />
+                  {chat.online && (
+                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-panel" />
+                  )}
+                </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-sm font-medium text-ink">{chat.displayName}</span>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate text-sm font-medium text-ink">
+                        {chat.displayName}
+                      </span>
+                      {chat.muted && <BellOff size={10} className="shrink-0 text-dim" />}
+                    </span>
                     <span className="shrink-0 text-[10px] text-dim">
                       {timeAgo(chat.lastMessageAt)}
                     </span>
                   </span>
                   <span className="mt-0.5 flex items-center justify-between gap-2">
-                    <span className="truncate text-[11px] text-muted">
-                      {chat.lastMessage
-                        ? `${chat.lastMessageMine ? 'Вы: ' : ''}${chat.lastMessage.replace(/\s+/g, ' ')}`
-                        : 'Нет сообщений'}
+                    <span
+                      className={cn(
+                        'truncate text-[11px]',
+                        chat.typing ? 'text-emerald-300' : 'text-muted',
+                      )}
+                    >
+                      {chat.typing
+                        ? 'печатает…'
+                        : chat.lastMessage
+                          ? `${chat.lastMessageMine ? 'Вы: ' : ''}${chat.lastMessage.replace(/\s+/g, ' ')}`
+                          : 'Нет сообщений'}
                     </span>
                     {chat.unread > 0 && (
                       <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-black">
@@ -337,11 +406,35 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
                 <span className="block truncate text-sm font-semibold text-ink">
                   {other.displayName}
                 </span>
-                <span className="block truncate text-[11px] text-muted">@{other.username}</span>
+                <span
+                  className={cn(
+                    'block truncate text-[11px]',
+                    otherTyping || other.online ? 'text-emerald-300' : 'text-muted',
+                  )}
+                >
+                  {otherTyping
+                    ? 'печатает…'
+                    : other.online
+                      ? 'В сети'
+                      : other.lastSeenAt > 0
+                        ? `Последний визит ${timeAgo(other.lastSeenAt)}`
+                        : 'Не в сети'}
+                </span>
               </span>
             </Link>
           ) : (
             <span className="text-sm font-semibold text-muted">Переписка</span>
+          )}
+          {other && messages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void toggleMute()}
+              aria-label={muted ? 'Включить уведомления чата' : 'Отключить уведомления чата'}
+              title={muted ? 'Уведомления выключены' : 'Уведомления включены'}
+              className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-white/5 hover:text-ink"
+            >
+              {muted ? <BellOff size={15} /> : <Bell size={15} />}
+            </button>
           )}
         </div>
 
@@ -420,7 +513,7 @@ export function ChatApp({ viewer }: { viewer: { username: string; displayName: s
             <div className="flex items-end gap-2">
               <textarea
                 value={input}
-                onChange={(event) => setInput(event.target.value)}
+                onChange={(event) => handleInput(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault()
