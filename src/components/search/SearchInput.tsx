@@ -31,7 +31,7 @@ export function SearchInput() {
       <input
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder="Треки, исполнители, плейлисты…"
+        placeholder="Треки, люди, исполнители, плейлисты…"
         className="h-11 w-full rounded-full border border-transparent bg-card pl-11 pr-11 text-sm placeholder:text-dim transition focus:border-white/30 focus:bg-card-hover"
         aria-label="Поиск"
       />

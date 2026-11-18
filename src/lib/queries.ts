@@ -12,6 +12,7 @@ import type {
   Track,
   UserPublic,
   UserRecord,
+  UserSearchResult,
 } from './types'
 
 type Row = Record<string, any>
@@ -105,6 +106,40 @@ export function getUserByUsername(username: string): UserPublic | null {
   return row ? publicUser(mapUser(row)) : null
 }
 
+/** Public people search used by the search page. */
+export function searchUsers(query: string, limit = 8): UserSearchResult[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return []
+  const contains = likeClause(q)
+  const prefix = `${q.replace(/[\\%_]/g, (match) => `\\${match}`)}%`
+
+  const rows = db
+    .prepare(
+      `SELECT id, username, display_name, avatar, avatar_frame, status, status_color
+       FROM users
+       WHERE is_banned = 0 AND search_text LIKE ? ESCAPE '\\'
+       ORDER BY
+         CASE
+           WHEN LOWER(username) = ? THEN 0
+           WHEN LOWER(username) LIKE ? ESCAPE '\\' THEN 1
+           ELSE 2
+         END,
+         LOWER(username)
+       LIMIT ?`,
+    )
+    .all(contains, q, prefix, Math.max(1, Math.min(limit, 20))) as Row[]
+
+  return rows.map((row) => ({
+    id: String(row.id),
+    username: String(row.username),
+    displayName: String(row.display_name),
+    avatar: row.avatar ? String(row.avatar) : null,
+    avatarFrame: clampAvatarFrame(row.avatar_frame ? String(row.avatar_frame) : null),
+    status: row.status ? String(row.status) : null,
+    statusColor: clampStatusColor(row.status_color ? String(row.status_color) : null),
+  }))
+}
+
 export function createUser(input: {
   email: string
   username: string
@@ -116,13 +151,14 @@ export function createUser(input: {
   const adminEmail = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase()
   const isAdmin = total === 0 || (adminEmail !== '' && input.email.trim().toLowerCase() === adminEmail)
   db.prepare(
-    `INSERT INTO users (id, email, username, display_name, password_hash, bio, can_upload, is_admin, is_banned, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+    `INSERT INTO users (id, email, username, display_name, search_text, password_hash, bio, can_upload, is_admin, is_banned, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
   ).run(
     id,
     input.email.trim().toLowerCase(),
     input.username.trim(),
     input.displayName.trim(),
+    `${input.username.trim()} ${input.displayName.trim()}`.toLowerCase(),
     input.passwordHash,
     null,
     isAdmin ? 1 : 0,
@@ -159,10 +195,12 @@ export function updateUserProfile(
 ): UserPublic | null {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as Row | undefined
   if (!user) return null
+  const displayName = patch.displayName?.trim() || String(user.display_name)
   db.prepare(
-    'UPDATE users SET display_name = ?, bio = ?, status = ?, status_color = ?, avatar = ?, cover = ?, avatar_frame = ? WHERE id = ?',
+    'UPDATE users SET display_name = ?, search_text = ?, bio = ?, status = ?, status_color = ?, avatar = ?, cover = ?, avatar_frame = ? WHERE id = ?',
   ).run(
-    patch.displayName?.trim() || String(user.display_name),
+    displayName,
+    `${String(user.username)} ${displayName}`.toLowerCase(),
     patch.bio === undefined ? user.bio : patch.bio,
     patch.status === undefined ? user.status : patch.status,
     patch.statusColor === undefined ? user.status_color : patch.statusColor,

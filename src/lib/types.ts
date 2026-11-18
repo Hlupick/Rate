@@ -21,6 +21,17 @@ export type UserPublic = {
 
 export type UserRecord = UserPublic & { passwordHash: string }
 
+/** Public card used by search results; never includes email or account flags. */
+export type UserSearchResult = {
+  id: string
+  username: string
+  displayName: string
+  avatar: string | null
+  avatarFrame: AvatarFrame
+  status: string | null
+  statusColor: StatusColor
+}
+
 export type Track = {
   id: string
   title: string

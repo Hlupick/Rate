@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT NOT NULL UNIQUE,
   username TEXT NOT NULL UNIQUE,
   display_name TEXT NOT NULL,
+  search_text TEXT NOT NULL DEFAULT '',
   password_hash TEXT NOT NULL,
   bio TEXT,
   status TEXT,
@@ -254,6 +255,7 @@ function createDb() {
     'ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0',
     'ALTER TABLE users ADD COLUMN avatar_frame TEXT',
     'ALTER TABLE users ADD COLUMN points INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE users ADD COLUMN search_text TEXT NOT NULL DEFAULT \'\'',
     // Playlist import was removed; drop the placeholder table it left behind.
     'DROP TABLE IF EXISTS playlist_drafts',
   ]
@@ -263,6 +265,16 @@ function createDb() {
     } catch {
       /* column already exists */
     }
+  }
+  // Search text is lowercased by JS so Cyrillic names are found regardless of case.
+  const missingSearch = db
+    .prepare("SELECT id, username, display_name FROM users WHERE search_text = ''")
+    .all() as { id: string; username: string; display_name: string }[]
+  for (const row of missingSearch) {
+    db.prepare('UPDATE users SET search_text = ? WHERE id = ?').run(
+      `${row.username} ${row.display_name}`.toLowerCase(),
+      row.id,
+    )
   }
   // One-time starting balance so the people who were here before the point
   // system existed can also try a premium frame. The marker row is written

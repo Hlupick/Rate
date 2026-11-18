@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { Avatar } from '@/components/ui/Avatar'
+import { StatusPill } from '@/components/profile/StatusPill'
 import { tracksWord } from '@/lib/format'
-import type { Playlist } from '@/lib/types'
+import type { Playlist, UserSearchResult } from '@/lib/types'
 
 export function PlaylistCard({ playlist }: { playlist: Playlist }) {
   return (
@@ -44,6 +45,34 @@ export function ArtistCard({
       <div className="truncate text-[14px] font-semibold">{artist}</div>
       <div className="mt-0.5 text-[12.5px] text-muted">
         Исполнитель · {tracksWord(trackCount)}
+      </div>
+    </Link>
+  )
+}
+
+export function UserCard({ person }: { person: UserSearchResult }) {
+  return (
+    <Link
+      href={`/profile/${person.username}`}
+      className="flex items-center gap-3 rounded-lg bg-card p-3 transition-colors hover:bg-card-hover"
+    >
+      <Avatar
+        name={person.displayName}
+        src={person.avatar}
+        frame={person.avatarFrame}
+        className="h-12 w-12 shrink-0"
+        textClassName="text-sm"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[14px] font-semibold">{person.displayName}</div>
+        <div className="truncate text-[12px] text-muted">@{person.username}</div>
+        {person.status && (
+          <StatusPill
+            text={person.status}
+            color={person.statusColor}
+            className="mt-1 py-0 text-[10px]"
+          />
+        )}
       </div>
     </Link>
   )

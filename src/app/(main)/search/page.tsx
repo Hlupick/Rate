@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { SearchX } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
-import { listArtists, listTracks, searchPlaylists } from '@/lib/queries'
+import { listArtists, listTracks, searchPlaylists, searchUsers } from '@/lib/queries'
 import { SearchInput } from '@/components/search/SearchInput'
 import { TracksPager } from '@/components/track/TracksPager'
-import { ArtistCard, PlaylistCard } from '@/components/ui/cards'
+import { ArtistCard, PlaylistCard, UserCard } from '@/components/ui/cards'
 import { CardGrid, SectionHeader } from '@/components/ui/Section'
 import type { Metadata } from 'next'
 import { tracksWord } from '@/lib/format'
@@ -46,9 +46,15 @@ export default async function SearchPage({
   const popular = popularPage.slice(0, PAGE)
   const artists = query ? listArtists(query, 6) : []
   const playlists = query ? searchPlaylists(query, 6) : []
+  const people = query ? searchUsers(query, 8) : []
 
   const hasQuery = Boolean(query || genre)
-  const nothingFound = hasQuery && tracks.length === 0 && artists.length === 0 && playlists.length === 0
+  const nothingFound =
+    hasQuery &&
+    tracks.length === 0 &&
+    artists.length === 0 &&
+    playlists.length === 0 &&
+    people.length === 0
 
   return (
     <div className="px-4 md:px-6">
@@ -124,9 +130,20 @@ export default async function SearchPage({
               <SearchX size={28} className="mb-4 text-muted" />
               <h2 className="text-lg font-semibold">Ничего не нашлось</h2>
               <p className="mt-1 max-w-md text-sm text-muted">
-                Попробуйте другое название, исполнителя или жанр. Или загрузите этот трек сами.
+                Попробуйте другое название, исполнителя, жанр или ник.
               </p>
             </div>
+          )}
+
+          {people.length > 0 && (
+            <>
+              <SectionHeader title="Люди" />
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {people.map((person) => (
+                  <UserCard key={person.id} person={person} />
+                ))}
+              </div>
+            </>
           )}
 
           {tracks.length > 0 && (
