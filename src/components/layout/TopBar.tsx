@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, LogOut, Settings, Shield, Upload, User } fro
 import { Logo } from '@/components/ui/Logo'
 import { Avatar } from '@/components/ui/Avatar'
 import { StreakPill } from '@/components/streak/StreakPill'
+import { ChatUnreadLink } from '@/components/social/ChatUnreadLink'
 
 type TopBarProps = {
   user: {
@@ -66,6 +67,7 @@ export function TopBar({ user }: TopBarProps) {
           {user ? (
             <>
               <StreakPill className="md:hidden" />
+              <ChatUnreadLink />
               <Link
                 href="/upload"
                 className="hidden items-center gap-2 rounded-full border border-line px-4 py-1.5 text-sm font-medium text-muted transition hover:border-white/30 hover:text-ink sm:flex"

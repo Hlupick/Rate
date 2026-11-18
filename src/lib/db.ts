@@ -132,9 +132,41 @@ CREATE TABLE IF NOT EXISTS meta (
   value TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS invites (
+CREATE TABLE IF NOT EXISTS follows (
+  follower_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  following_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (follower_id, following_id),
+  CHECK (follower_id <> following_id)
+);
+
+CREATE TABLE IF NOT EXISTS chats (
   id TEXT PRIMARY KEY,
-  code TEXT NOT NULL UNIQUE,
+  user_a TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_b TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  last_message_at INTEGER NOT NULL,
+  UNIQUE (user_a, user_b),
+  CHECK (user_a < user_b)
+);
+
+CREATE TABLE IF NOT EXISTS chat_members (
+  chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  last_read_id INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (chat_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS invites (
+  id TEXT PRIMARY KEY,  code TEXT NOT NULL UNIQUE,
   created_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   max_uses INTEGER NOT NULL DEFAULT 1,
   uses INTEGER NOT NULL DEFAULT 0,
@@ -192,6 +224,11 @@ CREATE INDEX IF NOT EXISTS idx_playlists_owner ON playlists(owner_id);
 CREATE INDEX IF NOT EXISTS idx_likes_track ON likes(track_id);
 CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_invites_code ON invites(code);
+CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_chats_user_a ON chats(user_a, last_message_at);
+CREATE INDEX IF NOT EXISTS idx_chats_user_b ON chats(user_b, last_message_at);
+CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_chat ON chat_messages(chat_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_email_verifications_email ON email_verifications(email, created_at);
 CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id, created_at);
 `

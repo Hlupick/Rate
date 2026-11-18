@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { Headphones, Sparkles } from 'lucide-react'
+import { Headphones, MessageCircle, Sparkles } from 'lucide-react'
 import { getCurrentUser } from '@/lib/auth'
 import { getOwnedFrames } from '@/lib/frames'
 import { getUserPoints } from '@/lib/points'
+import { getFollowRelation, getFollowStats } from '@/lib/social'
 import { getPlaylistsByOwner, getListeningSeconds, getUserByUsername, listTracks } from '@/lib/queries'
 import { CardGrid, SectionHeader } from '@/components/ui/Section'
 import { PlaylistCard } from '@/components/ui/cards'
@@ -16,6 +17,8 @@ import { StreakChip } from '@/components/streak/StreakChip'
 import { StreakReturnsChip } from '@/components/streak/StreakReturnsChip'
 import { StatusPill } from '@/components/profile/StatusPill'
 import { PointsHint } from '@/components/profile/PointsHint'
+import { FollowButton } from '@/components/social/FollowButton'
+import { ProfileConnections } from '@/components/social/ProfileConnections'
 import { formatCount, formatTotalDuration } from '@/lib/format'
 
 export async function generateMetadata({
@@ -46,6 +49,8 @@ export default async function ProfilePage({
   const listeningSeconds = getListeningSeconds(profile.id)
   const points = isSelf ? getUserPoints(profile.id) : 0
   const ownedFrames = isSelf ? getOwnedFrames(profile.id) : []
+  const followStats = getFollowStats(profile.id)
+  const relation = viewer ? getFollowRelation(viewer.id, profile.id) : 'none'
 
   return (
     <div>
@@ -110,6 +115,24 @@ export default async function ProfilePage({
               </div>
             )}
             {profile.bio && <p className="mt-2 max-w-xl text-sm text-muted">{profile.bio}</p>}
+            <ProfileConnections username={profile.username} stats={followStats} />
+            {!isSelf && (
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 md:justify-start">
+                <FollowButton
+                  username={profile.username}
+                  initialRelation={relation}
+                  isAuthenticated={Boolean(viewer)}
+                />
+                {relation === 'friends' && (
+                  <Link
+                    href={`/chats?with=${encodeURIComponent(profile.username)}`}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-4 py-1.5 text-xs font-medium text-muted backdrop-blur-md transition hover:border-white/25 hover:bg-black/60 hover:text-ink"
+                  >
+                    <MessageCircle size={13} /> Написать
+                  </Link>
+                )}
+              </div>
+            )}
             {isSelf && (
               <div className="mt-3 flex flex-wrap justify-center gap-2 md:justify-start">
                 <ProfileEditor

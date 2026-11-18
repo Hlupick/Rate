@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Heart, Home, Library, Plus, Search, Smartphone, Upload } from 'lucide-react'
+import { Heart, Home, Library, MessageCircle, Plus, Search, Smartphone, Upload } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { Logo } from '@/components/ui/Logo'
 import { CreatePlaylistDialog } from '@/components/playlist/CreatePlaylistDialog'
@@ -27,6 +27,7 @@ type SidebarProps = {
 const NAV = [
   { href: '/', label: 'Главная', icon: Home },
   { href: '/search', label: 'Поиск', icon: Search },
+  { href: '/chats', label: 'Сообщения', icon: MessageCircle },
   { href: '/download', label: 'Приложение', icon: Smartphone },
 ]
 
