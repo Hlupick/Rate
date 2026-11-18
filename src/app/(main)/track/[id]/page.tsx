@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { getCurrentUser } from '@/lib/auth'
 import { getTrack, getUserById, listTracks } from '@/lib/queries'
 import { Avatar } from '@/components/ui/Avatar'
+import { TrackAvatar } from '@/components/track/TrackAvatar'
 import { TrackHeroActions } from '@/components/track/Actions'
 import { TrackList } from '@/components/track/TrackList'
 import { formatCount, formatDuration, timeAgo, tracksWord } from '@/lib/format'
@@ -39,11 +40,10 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
       <div className="relative">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.09] via-white/[0.02] to-transparent" />
         <div className="relative flex flex-col items-center gap-6 px-4 pb-6 pt-8 text-center md:flex-row md:items-end md:px-6 md:pt-12 md:text-left">
-          <Avatar
-            name={track.artist}
-            shape="square"
-            className="h-44 w-44 rounded-lg shadow-2xl md:h-56 md:w-56"
-            textClassName="text-6xl md:text-7xl"
+          <TrackAvatar
+            title={track.title}
+            className="h-44 w-44 rounded-lg p-4 shadow-2xl md:h-56 md:w-56"
+            textClassName="text-2xl md:text-3xl"
           />
           <div className="w-full min-w-0 md:flex-1">
             <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">

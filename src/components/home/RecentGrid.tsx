@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Pause, Play } from 'lucide-react'
-import { Avatar } from '@/components/ui/Avatar'
+import { TrackAvatar } from '@/components/track/TrackAvatar'
 import { usePlayer, type PlayerTrack } from '@/components/player/PlayerProvider'
 import type { Track } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -27,11 +27,10 @@ export function RecentGrid({ tracks, label }: { tracks: Track[]; label?: string 
             key={track.id}
             className="group relative flex items-center gap-3 overflow-hidden rounded-md bg-white/[0.07] pr-3 transition hover:bg-white/[0.12]"
           >
-            <Avatar
-              name={track.artist}
-              shape="square"
+            <TrackAvatar
+              title={track.title}
               className="h-14 w-14 rounded-none sm:h-16 sm:w-16"
-              textClassName="text-base"
+              textClassName="text-[10px] sm:text-[11px]"
             />
             <Link
               href={`/track/${track.id}`}

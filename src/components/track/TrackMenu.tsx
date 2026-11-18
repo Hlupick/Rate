@@ -7,6 +7,7 @@ import { Menu, MenuItem } from '@/components/ui/Menu'
 import { Modal } from '@/components/ui/Modal'
 import { usePlayer, type PlayerTrack } from '@/components/player/PlayerProvider'
 import { Avatar } from '@/components/ui/Avatar'
+import { TrackAvatar } from '@/components/track/TrackAvatar'
 import type { Track } from '@/lib/types'
 
 export function TrackMenu({
@@ -361,12 +362,7 @@ function AddToPlaylistDialog({
       description={`«${track.title}» — ${track.artist}`}
     >
       <div className="mb-4 flex items-center gap-3 rounded-md bg-white/5 p-2">
-        <Avatar
-          name={track.artist}
-          shape="square"
-          className="h-10 w-10"
-          textClassName="text-xs"
-        />
+        <TrackAvatar title={track.title} className="h-10 w-10" />
         <div className="min-w-0">
           <div className="truncate text-sm font-medium">{track.title}</div>
           <div className="truncate text-xs text-muted">{track.artist}</div>

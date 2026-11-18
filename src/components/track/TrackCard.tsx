@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Pause, Play } from 'lucide-react'
-import { Avatar } from '@/components/ui/Avatar'
+import { TrackAvatar } from '@/components/track/TrackAvatar'
 import { usePlayer, type PlayerTrack } from '@/components/player/PlayerProvider'
 import type { Track } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -64,11 +64,10 @@ export function TrackCard({
   return (
     <div className="group relative flex h-full flex-col rounded-lg bg-card p-3 transition-colors hover:bg-card-hover">
       <div className="relative mb-3 aspect-square overflow-hidden rounded-md shadow-lg">
-        <Avatar
-          name={track.artist}
-          shape="square"
-          className="h-full w-full rounded-md"
-          textClassName="text-4xl"
+        <TrackAvatar
+          title={track.title}
+          className="h-full w-full rounded-md p-4"
+          textClassName="text-xl"
         />
         <PlayButton
           playing={isCurrent && isPlaying}

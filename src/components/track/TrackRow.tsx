@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Pause, Play } from 'lucide-react'
-import { Avatar } from '@/components/ui/Avatar'
+import { TrackAvatar } from './TrackAvatar'
 import { LikeButton } from '@/components/track/LikeButton'
 import { TrackMenu } from '@/components/track/TrackMenu'
 import { usePlayer, type PlayerTrack } from '@/components/player/PlayerProvider'
@@ -95,12 +95,7 @@ export function TrackRow({
       </div>
 
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <Avatar
-          name={track.artist}
-          shape="square"
-          className="h-10 w-10"
-          textClassName="text-xs"
-        />
+        <TrackAvatar title={track.title} className="h-10 w-10" />
         <div className="min-w-0">
           <Link
             href={`/track/${track.id}`}

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { usePlayer } from './PlayerProvider'
 import { Bar } from '@/components/ui/Bar'
-import { Avatar } from '@/components/ui/Avatar'
+import { TrackAvatar } from '@/components/track/TrackAvatar'
 import { LikeButton } from '@/components/track/LikeButton'
 import { QueuePanel } from './QueuePanel'
 import { formatDuration } from '@/lib/format'
@@ -100,11 +100,10 @@ export function PlayerBar() {
         <div className="flex min-w-0 flex-1 items-center gap-2.5 md:w-[28%] md:flex-none md:gap-3">
           {current ? (
             <>
-              <Avatar
-                name={current.artist}
-                shape="square"
+              <TrackAvatar
+                title={current.title}
                 className="h-11 w-11 md:h-14 md:w-14"
-                textClassName="text-sm md:text-base"
+                textClassName="md:text-[11px]"
               />
               <div className="min-w-0">
                 <Link
