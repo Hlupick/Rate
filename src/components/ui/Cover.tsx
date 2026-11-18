@@ -79,7 +79,7 @@ export function CoverBanner({
           onError={image.onError}
         />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/25" />
     </div>
   )
 }

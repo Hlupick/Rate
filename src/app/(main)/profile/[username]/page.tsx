@@ -55,7 +55,7 @@ export default async function ProfilePage({
             className="h-36 w-36 md:h-44 md:w-44"
             textClassName="text-4xl"
           />
-          <div className="w-full min-w-0 md:flex-1">
+          <div className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 backdrop-blur-md md:w-auto md:max-w-[760px] md:flex-1 md:px-5 md:py-4">
             <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
               Профиль
             </div>

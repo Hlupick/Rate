@@ -46,7 +46,7 @@ export function RecentGrid({ tracks, label }: { tracks: Track[]; label?: string 
               aria-label={isCurrent && isPlaying ? 'Пауза' : 'Играть'}
               className={cn(
                 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-black shadow-lg transition sm:h-10 sm:w-10',
-                'opacity-0 group-hover:opacity-100',
+                'opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100',
                 isCurrent && 'opacity-100',
               )}
             >

@@ -76,7 +76,7 @@ export function TrackCard({
             if (isCurrent) toggle()
             else play(track, queue, label ?? track.artist)
           }}
-          className="absolute bottom-2 right-2 translate-y-2 opacity-0 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100"
+          className="absolute bottom-2 right-2 translate-y-2 opacity-0 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100 pointer-coarse:translate-y-0 pointer-coarse:opacity-100"
         />
       </div>
       <Link href={`/track/${track.id}`} className="block truncate text-[14px] font-semibold hover:underline">
