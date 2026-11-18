@@ -93,12 +93,6 @@ export default async function AdminPage({
             Инвайты, права, жалобы и состояние диска. Доступно только администраторам.
           </p>
         </div>
-        <Link
-          href="/rules"
-          className="rounded-full border border-line px-4 py-1.5 text-xs font-medium text-muted transition hover:border-white/30 hover:text-ink"
-        >
-          Правила сайта
-        </Link>
       </div>
 
       <div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">

@@ -125,6 +125,15 @@ export default async function HomePage() {
           </div>
           <span>Демо-аккаунт: demo@monah.local / monah123</span>
         </div>
+
+        <div className="mt-5">
+          <Link
+            href="/rules"
+            className="inline-flex rounded-full border border-line px-4 py-1.5 text-xs font-medium text-muted transition hover:border-white/30 hover:text-ink"
+          >
+            Правила сайта
+          </Link>
+        </div>
       </div>
     </div>
   )
