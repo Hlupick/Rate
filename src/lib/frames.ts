@@ -1,4 +1,12 @@
-import { AVATAR_FRAMES, clampAvatarFrame, framePrice, isPremiumFrame, type AvatarFrame } from './avatar-frame'
+import {
+  AVATAR_FRAMES,
+  canUseExclusiveFrame,
+  clampAvatarFrame,
+  framePrice,
+  isExclusiveFrame,
+  isPremiumFrame,
+  type AvatarFrame,
+} from './avatar-frame'
 import { db } from './db'
 import { getUserPoints } from './points'
 
@@ -18,8 +26,15 @@ export function isFrameAdmin(userId: string): boolean {
 
 /** Admins get every frame for free, everyone else needs a purchase for premium ones. */
 export function hasFrameAccess(userId: string, frame: AvatarFrame): boolean {
+  const user = db
+    .prepare('SELECT username, is_admin FROM users WHERE id = ?')
+    .get(userId) as Row | undefined
+  if (!user) return false
+  if (isExclusiveFrame(frame)) {
+    return canUseExclusiveFrame(frame, String(user.username ?? ''))
+  }
   if (!isPremiumFrame(frame)) return true
-  if (isFrameAdmin(userId)) return true
+  if (user.is_admin) return true
   return Boolean(
     db.prepare('SELECT 1 FROM user_frames WHERE user_id = ? AND frame = ?').get(userId, frame),
   )
@@ -44,6 +59,9 @@ export function buyFrame(userId: string, value: string): BuyFrameResult {
     return { ok: false, error: 'Такого ободка нет', points: getUserPoints(userId), owned: getOwnedFrames(userId) }
   }
   const frame = clampAvatarFrame(value)
+  if (isExclusiveFrame(frame)) {
+    return { ok: false, error: 'Этот ободок недоступен', points: getUserPoints(userId), owned: getOwnedFrames(userId) }
+  }
   if (!isPremiumFrame(frame)) {
     return { ok: false, error: 'Этот ободок бесплатный', points: getUserPoints(userId), owned: getOwnedFrames(userId) }
   }

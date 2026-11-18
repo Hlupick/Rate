@@ -14,11 +14,20 @@ export const AVATAR_FRAMES = [
   { key: 'neon', label: 'Неон', tier: 'premium', price: 900, className: 'frame-neon' },
   { key: 'gold', label: 'Золото', tier: 'premium', price: 1200, className: 'frame-gold' },
   { key: 'prism', label: 'Призма', tier: 'premium', price: 1800, className: 'frame-prism' },
+  { key: 'storm', label: 'Гроза', tier: 'exclusive', price: 0, className: 'frame-storm' },
 ] as const
 
 export type AvatarFrame = (typeof AVATAR_FRAMES)[number]['key']
 
 export const DEFAULT_AVATAR_FRAME: AvatarFrame = 'none'
+
+/**
+ * Frames that belong to one person only. The server checks this list as well,
+ * so hiding the card in the editor is not the only line of defence.
+ */
+export const EXCLUSIVE_FRAME_OWNERS: Partial<Record<AvatarFrame, readonly string[]>> = {
+  storm: ['stas'],
+}
 
 export function avatarFrameTheme(value: string | null | undefined) {
   return AVATAR_FRAMES.find((frame) => frame.key === value) ?? AVATAR_FRAMES[0]
@@ -37,6 +46,21 @@ export function frameClassName(value: string | null | undefined): string {
 
 export function isPremiumFrame(value: string | null | undefined): boolean {
   return avatarFrameTheme(value).tier === 'premium'
+}
+
+export function isExclusiveFrame(value: string | null | undefined): boolean {
+  return avatarFrameTheme(value).tier === 'exclusive'
+}
+
+/** True only for the listed owner of an exclusive frame, e.g. @stas and «Гроза». */
+export function canUseExclusiveFrame(
+  value: string | null | undefined,
+  username: string | null | undefined,
+): boolean {
+  if (!isExclusiveFrame(value)) return false
+  const owners = EXCLUSIVE_FRAME_OWNERS[clampAvatarFrame(value)]
+  if (!owners || !username) return false
+  return owners.includes(username.trim().toLowerCase())
 }
 
 export function framePrice(value: string | null | undefined): number {

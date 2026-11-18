@@ -2,12 +2,19 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lock, Pencil, Sparkles } from 'lucide-react'
+import { Lock, Pencil, Sparkles, Check } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { Modal } from '@/components/ui/Modal'
 import { ImagePicker } from '@/components/ui/ImagePicker'
 import { StatusPill } from '@/components/profile/StatusPill'
-import { AVATAR_FRAMES, avatarFrameTheme, clampAvatarFrame, type AvatarFrame } from '@/lib/avatar-frame'
+import {
+  AVATAR_FRAMES,
+  avatarFrameTheme,
+  canUseExclusiveFrame,
+  clampAvatarFrame,
+  isExclusiveFrame,
+  type AvatarFrame,
+} from '@/lib/avatar-frame'
 import { formatCount } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { STATUS_COLORS, STATUS_MAX_LENGTH, clampStatus, countStatusChars, limitStatusChars, statusColorTheme } from '@/lib/status'
@@ -23,6 +30,7 @@ export function ProfileEditor({
   points,
   ownedFrames,
   isAdmin = false,
+  username,
 }: {
   displayName: string
   bio: string | null
@@ -34,6 +42,7 @@ export function ProfileEditor({
   points: number
   ownedFrames: string[]
   isAdmin?: boolean
+  username: string
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -123,6 +132,10 @@ export function ProfileEditor({
 
   const pendingTheme = pendingBuy ? avatarFrameTheme(pendingBuy) : null
   const shortfall = pendingTheme ? Math.max(0, pendingTheme.price - balance) : 0
+  const visibleFrames = AVATAR_FRAMES.filter((theme) => !isExclusiveFrame(theme.key))
+  const exclusiveFrames = AVATAR_FRAMES.filter(
+    (theme) => isExclusiveFrame(theme.key) && canUseExclusiveFrame(theme.key, username),
+  )
 
   return (
     <>
@@ -152,7 +165,7 @@ export function ProfileEditor({
                 </span>
               </div>
               <div className="grid grid-cols-5 gap-1.5">
-                {AVATAR_FRAMES.map((theme) => {
+                {visibleFrames.map((theme) => {
                   const locked = theme.tier === 'premium' && !isAdmin && !owned.includes(theme.key)
                   const active = frame === theme.key
                   return (
@@ -215,6 +228,49 @@ export function ProfileEditor({
                   )
                 })}
               </div>
+
+              {exclusiveFrames.length > 0 && (
+                <div className="space-y-1.5">
+                  {exclusiveFrames.map((theme) => {
+                    const active = frame === theme.key
+                    return (
+                      <button
+                        key={theme.key}
+                        type="button"
+                        onClick={() => chooseFrame(theme)}
+                        aria-pressed={active}
+                        className={cn(
+                          'flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition',
+                          active
+                            ? 'border-white/25 bg-white/10'
+                            : 'border-white/10 bg-gradient-to-r from-white/[0.07] to-transparent hover:bg-white/5',
+                        )}
+                      >
+                        <Avatar
+                          name={name || 'Rate'}
+                          src={newAvatar}
+                          frame={theme.key}
+                          animated
+                          className="h-11 w-11"
+                          textClassName="text-xs"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex flex-wrap items-center gap-2 text-xs font-semibold text-ink">
+                            {theme.label}
+                            <span className="rounded-full border border-white/15 bg-white/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white/70">
+                              эксклюзив
+                            </span>
+                          </span>
+                          <span className="mt-0.5 block text-[10px] text-amber-200/80">
+                            Только для @{username}
+                          </span>
+                        </span>
+                        {active && <Check size={14} className="shrink-0 text-emerald-300" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
 
               {pendingTheme && (
                 <div className="rounded-lg border border-white/10 bg-black/40 p-3">

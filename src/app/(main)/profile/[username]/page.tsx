@@ -14,6 +14,7 @@ import { CoverBanner } from '@/components/ui/Cover'
 import { ProfileEditor } from '@/components/profile/ProfileEditor'
 import { StreakChip } from '@/components/streak/StreakChip'
 import { StatusPill } from '@/components/profile/StatusPill'
+import { PointsHint } from '@/components/profile/PointsHint'
 import { formatCount, formatTotalDuration } from '@/lib/format'
 
 export async function generateMetadata({
@@ -47,12 +48,14 @@ export default async function ProfilePage({
 
   return (
     <div>
-      <div className="relative overflow-hidden">
-        <CoverBanner
-          cover={profile.cover}
-          seed={profile.username}
-          className="absolute inset-0 h-full w-full"
-        />
+      <div className="relative">
+        <div className="absolute inset-0 overflow-hidden">
+          <CoverBanner
+            cover={profile.cover}
+            seed={profile.username}
+            className="h-full w-full"
+          />
+        </div>
         <div className="relative flex flex-col items-center gap-6 px-4 pb-6 pt-10 text-center md:flex-row md:items-end md:px-6 md:pt-14 md:text-left">
           <Avatar
             name={profile.displayName}
@@ -90,15 +93,17 @@ export default async function ProfilePage({
                   </span>
                 )}
                 {isSelf && (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3.5 py-1.5 backdrop-blur-md">
-                    <Sparkles size={14} className="text-amber-300" aria-hidden />
-                    <span className="text-sm font-bold tabular-nums text-amber-100">
-                      {formatCount(points)}
+                  <PointsHint>
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3.5 py-1.5 backdrop-blur-md">
+                      <Sparkles size={14} className="text-amber-300" aria-hidden />
+                      <span className="text-sm font-bold tabular-nums text-amber-100">
+                        {formatCount(points)}
+                      </span>
+                      <span className="text-[11px] font-medium uppercase tracking-wide text-amber-200/70">
+                        баллов
+                      </span>
                     </span>
-                    <span className="text-[11px] font-medium uppercase tracking-wide text-amber-200/70">
-                      баллов
-                    </span>
-                  </span>
+                  </PointsHint>
                 )}
               </div>
             )}
@@ -116,6 +121,7 @@ export default async function ProfilePage({
                   points={points}
                   ownedFrames={ownedFrames}
                   isAdmin={profile.isAdmin}
+                  username={profile.username}
                 />
                 <Link
                   href="/upload"

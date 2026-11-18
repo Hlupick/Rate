@@ -77,6 +77,18 @@ export function Avatar({
           </>
         )}
       </div>
+      {hasFrame && theme.key === 'storm' && animated && (
+        <svg className="storm-bolts" viewBox="0 0 100 100" aria-hidden="true">
+          <path
+            className="storm-bolt storm-bolt-1"
+            d="M101 -1 L92 4 L96 9 L85 13 L87 16 L80 20"
+          />
+          <path className="storm-bolt storm-bolt-2" d="M109 52 L101 46 L104 51 L94 48 L92 50" />
+          <path className="storm-bolt storm-bolt-3" d="M48 109 L45 100 L51 102 L47 94 L50 92" />
+          <path className="storm-bolt storm-bolt-4" d="M-9 55 L2 51 L-1 46 L5 49 L8 50" />
+          <path className="storm-bolt storm-bolt-5" d="M-6 2 L4 9 L1 13 L10 18 L20 20" />
+        </svg>
+      )}
     </div>
   )
 }

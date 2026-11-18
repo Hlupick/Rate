@@ -1,13 +1,20 @@
 import { db } from './db'
+import {
+  LISTENING_POINTS_DAILY_CAP,
+  POINTS_PER_LISTENING_MINUTE,
+  UPLOAD_POINTS,
+  UPLOAD_POINTS_DAILY_CAP,
+} from './points-config'
+
+export {
+  LISTENING_POINTS_DAILY_CAP,
+  POINTS_PER_LISTENING_MINUTE,
+  UPLOAD_POINTS,
+  UPLOAD_POINTS_DAILY_CAP,
+  WELCOME_POINTS,
+} from './points-config'
 
 type Row = Record<string, any>
-
-/** One point per counted minute of listening, capped per day. */
-export const POINTS_PER_LISTENING_MINUTE = 1
-export const LISTENING_POINTS_DAILY_CAP = 240
-export const UPLOAD_POINTS = 40
-export const UPLOAD_POINTS_DAILY_CAP = 120
-export const WELCOME_POINTS = 100
 
 export function getUserPoints(userId: string): number {
   const row = db.prepare('SELECT points FROM users WHERE id = ?').get(userId) as Row | undefined
