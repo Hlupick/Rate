@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getCurrentUser } from '@/lib/auth'
-import { getPlaylistsByOwner, getUserByUsername, listTracks } from '@/lib/queries'
+import { getPlaylistsByOwner, getListeningSeconds, getUserByUsername, listTracks } from '@/lib/queries'
 import { CardGrid, SectionHeader } from '@/components/ui/Section'
 import { PlaylistCard } from '@/components/ui/cards'
 import { TrackList } from '@/components/track/TrackList'
@@ -10,7 +10,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { CoverBanner } from '@/components/ui/Cover'
 import { ProfileEditor } from '@/components/profile/ProfileEditor'
 import { StreakChip } from '@/components/streak/StreakChip'
-import { formatCount } from '@/lib/format'
+import { formatCount, formatTotalDuration } from '@/lib/format'
 
 export async function generateMetadata({
   params,
@@ -37,6 +37,7 @@ export default async function ProfilePage({
   const playlists = viewer?.id === profile.id ? allPlaylists : allPlaylists.filter((p) => p.isPublic)
   const isSelf = viewer?.id === profile.id
   const totalPlays = uploads.reduce((acc, track) => acc + track.playCount, 0)
+  const listeningSeconds = getListeningSeconds(profile.id)
 
   return (
     <div>
@@ -64,6 +65,7 @@ export default async function ProfilePage({
             <p className="mt-2 text-sm text-muted">
               @{profile.username} · загрузок: {uploads.length} · прослушиваний:{' '}
               {formatCount(totalPlays)}
+              {listeningSeconds > 0 && <> · в музыке: {formatTotalDuration(listeningSeconds)}</>}
             </p>
             {profile.bio && <p className="mt-2 max-w-xl text-sm text-muted">{profile.bio}</p>}
             {isSelf && (

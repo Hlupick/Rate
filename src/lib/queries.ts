@@ -472,6 +472,14 @@ export function addListeningTime(userId: string, day: string, seconds: number): 
   return Number(row?.seconds ?? 0)
 }
 
+/** Total counted listening time across every day on record. */
+export function getListeningSeconds(userId: string): number {
+  const row = db
+    .prepare('SELECT COALESCE(SUM(seconds), 0) AS total FROM listening_days WHERE user_id = ?')
+    .get(userId) as Row | undefined
+  return Number(row?.total ?? 0)
+}
+
 /* ---------------------------------- likes --------------------------------- */
 
 export function toggleLike(userId: string, trackId: string): boolean {

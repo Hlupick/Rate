@@ -14,6 +14,9 @@ export function PwaClient() {
   const [hidden, setHidden] = useState(false)
 
   useEffect(() => {
+    // The download page already explains how to install the Android build.
+    if (window.location.pathname.startsWith('/download')) return
+
     if (window.localStorage.getItem('monah-install-hidden') === '1') setHidden(true)
 
     const onInstall = (event: Event) => {

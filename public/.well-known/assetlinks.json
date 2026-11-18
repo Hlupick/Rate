@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.monah.player",
+      "sha256_cert_fingerprints": [
+        "9C:CD:A6:8D:5C:3B:3A:39:76:8F:12:D9:FE:62:CC:A8:44:32:30:D1:09:0E:8A:63:CD:6F:E5:B3:8A:66:56:34"
+      ]
+    }
+  }
+]

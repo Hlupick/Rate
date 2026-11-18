@@ -10,10 +10,10 @@ export function formatDuration(seconds: number): string {
 
 export function formatTotalDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0 мин'
-  const total = Math.round(seconds)
-  const h = Math.floor(total / 3600)
-  const m = Math.round((total % 3600) / 60)
-  if (h > 0) return `${h} ч ${m} мин`
+  const minutes = Math.round(seconds / 60)
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h > 0) return m > 0 ? `${h} ч ${m} мин` : `${h} ч`
   return `${m} мин`
 }
 
