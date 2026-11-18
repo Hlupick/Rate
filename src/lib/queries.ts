@@ -328,21 +328,18 @@ export function createTrack(input: {
 export function updateTrack(
   id: string,
   uploaderId: string,
-  patch: { title?: string; artist?: string; album?: string | null },
+  patch: { title?: string; artist?: string; album?: string | null; genre?: string | null },
 ): boolean {
   const track = db.prepare('SELECT * FROM tracks WHERE id = ?').get(id) as Row | undefined
   if (!track || track.uploader_id !== uploaderId) return false
   const title = patch.title?.trim() || String(track.title)
   const artist = patch.artist?.trim() || String(track.artist)
   const album = patch.album === undefined ? (track.album as string | null) : patch.album
+  const genre = patch.genre === undefined ? (track.genre as string | null) : patch.genre
   const searchText = [title, artist, album ?? ''].join(' ').toLowerCase()
-  db.prepare('UPDATE tracks SET title = ?, artist = ?, album = ?, search_text = ? WHERE id = ?').run(
-    title,
-    artist,
-    album,
-    searchText,
-    id,
-  )
+  db.prepare(
+    'UPDATE tracks SET title = ?, artist = ?, album = ?, genre = ?, search_text = ? WHERE id = ?',
+  ).run(title, artist, album, genre, searchText, id)
   return true
 }
 

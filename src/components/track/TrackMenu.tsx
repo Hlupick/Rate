@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Flag, ListMusic, ListPlus, Plus, Trash2, CirclePlus, ArrowDown, ArrowUp } from 'lucide-react'
+import { Flag, ListMusic, ListPlus, Pencil, Plus, Trash2, CirclePlus, ArrowDown, ArrowUp } from 'lucide-react'
 import { Menu, MenuItem } from '@/components/ui/Menu'
 import { Modal } from '@/components/ui/Modal'
 import { usePlayer, type PlayerTrack } from '@/components/player/PlayerProvider'
@@ -30,6 +30,7 @@ export function TrackMenu({
   const { playNext, addToQueue } = usePlayer()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   async function remove(close: () => void) {
     close()
@@ -132,6 +133,14 @@ export function TrackMenu({
             {canDelete && (
               <>
                 <div className="my-1 h-px bg-white/5" />
+                <MenuItem
+                  onClick={() => {
+                    close()
+                    setEditOpen(true)
+                  }}
+                >
+                  <Pencil size={15} /> Изменить трек
+                </MenuItem>
                 <MenuItem danger onClick={() => remove(close)}>
                   <Trash2 size={15} /> Удалить трек
                 </MenuItem>
@@ -146,6 +155,12 @@ export function TrackMenu({
         track={track}
       />
       <ReportDialog open={reportOpen} onClose={() => setReportOpen(false)} track={track} />
+      <EditTrackDialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        track={track}
+        onSaved={() => router.refresh()}
+      />
     </>
   )
 }
@@ -404,6 +419,123 @@ function AddToPlaylistDialog({
         </div>
         {message && <p className="mt-3 text-sm text-muted">{message}</p>}
       </div>
+    </Modal>
+  )
+}
+
+function EditTrackDialog({
+  open,
+  onClose,
+  track,
+  onSaved,
+}: {
+  open: boolean
+  onClose: () => void
+  track: Track
+  onSaved: () => void
+}) {
+  const [title, setTitle] = useState(track.title)
+  const [artist, setArtist] = useState(track.artist)
+  const [album, setAlbum] = useState(track.album ?? '')
+  const [genre, setGenre] = useState(track.genre ?? '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    setTitle(track.title)
+    setArtist(track.artist)
+    setAlbum(track.album ?? '')
+    setGenre(track.genre ?? '')
+    setError(null)
+  }, [open, track])
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
+    if (busy || !title.trim() || !artist.trim()) return
+    setBusy(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/tracks/${track.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          artist: artist.trim(),
+          album: album.trim() || null,
+          genre: genre.trim() || null,
+        }),
+      })
+      const data = (await response.json().catch(() => ({}))) as { error?: string }
+      if (!response.ok) throw new Error(data.error ?? 'Не удалось сохранить')
+      onClose()
+      onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const inputClass =
+    'w-full rounded-md border border-line bg-panel-2 px-3 py-2.5 text-sm placeholder:text-dim focus:border-white/40'
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Изменить трек"
+      description="Название, исполнитель и альбом обновятся в библиотеке и поиске."
+    >
+      <form onSubmit={submit} className="space-y-3">
+        <input
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          maxLength={120}
+          placeholder="Название"
+          className={inputClass}
+        />
+        <input
+          value={artist}
+          onChange={(event) => setArtist(event.target.value)}
+          maxLength={80}
+          placeholder="Исполнитель"
+          className={inputClass}
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input
+            value={album}
+            onChange={(event) => setAlbum(event.target.value)}
+            maxLength={120}
+            placeholder="Альбом"
+            className={inputClass}
+          />
+          <input
+            value={genre}
+            onChange={(event) => setGenre(event.target.value)}
+            maxLength={40}
+            placeholder="Жанр"
+            className={inputClass}
+          />
+        </div>
+        {error && <p className="text-sm text-red-400">{error}</p>}
+        <div className="flex justify-end gap-2 pt-1">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full px-4 py-2 text-sm text-muted transition hover:text-ink"
+          >
+            Отмена
+          </button>
+          <button
+            type="submit"
+            disabled={busy || !title.trim() || !artist.trim()}
+            className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-black transition hover:bg-white disabled:opacity-40"
+          >
+            {busy ? 'Сохраняем…' : 'Сохранить'}
+          </button>
+        </div>
+      </form>
     </Modal>
   )
 }
